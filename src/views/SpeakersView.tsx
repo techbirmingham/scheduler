@@ -160,7 +160,7 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId 
                       className="h-16 w-16 rounded-full object-cover"
                       onError={(e) => {
                         // If image fails to load, set a default
-                        (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1181694/pexels-photo-1181694.jpeg?auto=compress&cs=tinysrgb&w=150';
+                        (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
                       }}
                     />
                   </div>
@@ -335,7 +335,7 @@ export const SpeakersView: React.FC = () => {
                     className="h-16 w-16 rounded-full object-cover mr-4"
                     onError={(e) => {
                       // If image fails to load, set a default
-                      (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1181694/pexels-photo-1181694.jpeg?auto=compress&cs=tinysrgb&w=150';
+                      (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
                     }}
                   />
                   <div>
@@ -421,7 +421,7 @@ export const SpeakersView: React.FC = () => {
                             alt={speaker.name}
                             onError={(e) => {
                               // If image fails to load, set a default
-                              (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1181694/pexels-photo-1181694.jpeg?auto=compress&cs=tinysrgb&w=150';
+                              (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
                             }}
                           />
                         </div>
