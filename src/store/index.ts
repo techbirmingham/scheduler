@@ -7,7 +7,7 @@ export interface Speaker { /* … */ }
 export interface Venue     { /* … */ }
 export interface Session   { /* … */ }
 export interface SessionType { /* … */ }
-export interface Track      { /* … */ } 
+export interface Track      { /* … */ }
 export interface Organization { /* … */ }
 export interface Program    { /* … */ }
 export interface Experience { /* … */ }
