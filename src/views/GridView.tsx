@@ -179,6 +179,35 @@ export const GridView: React.FC = () => {
         </div>
       </div>
 
+
+
+      
+const GridView = () => {
+  const updateSession = useStore(s => s.updateSession)
+
+  const handleEventResize = async (info: EventResizeDoneArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      // format dates/times to what your DB expects
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
+
+  const handleEventDrop = async (info: EventDropArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
+
+
+
+      
+
       {/* FullCalendar configured with venue resources and time grid layout */}
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
         <FullCalendar
