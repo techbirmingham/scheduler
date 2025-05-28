@@ -113,17 +113,15 @@ export const useStore = create<State>((set, get) => {
     // 3) CRUD with .select().single()
 
     // — Speakers —
-      addSpeaker: async (speaker) => {
-        // generate a UUID locally, then send it
-        const newSpeaker = { id: uuidv4(), ...speaker };
-        const { data, error } = await supabase
-          .from('speakers')
-          .insert(newSpeaker)
-          .single();
-        if (!error) {
-          set((state) => ({ speakers: [...state.speakers, data] }));
-        }
-      },
+    addSpeaker: async (speaker) => {
+      const newSpeaker = { id: uuidv4(), ...speaker }
+      const { data, error } = await supabase
+        .from('speakers')
+        .insert(newSpeaker, { returning: 'representation' })
+        .single()
+      if (error) console.error('insert speaker failed', error)
+      else      set(state => ({ speakers: [...state.speakers, data] }))
+    },
     updateSpeaker: async (id, updates) => {
       const { data, error } = await supabase
         .from('speakers')
@@ -171,16 +169,15 @@ export const useStore = create<State>((set, get) => {
     },
 
     // — Sessions —
-      addSession: async (session) => {
-        const newSession = { id: uuidv4(), ...session };
-        const { data, error } = await supabase
-          .from('sessions')
-          .insert(newSession)
-          .single();
-        if (!error) {
-          set((state) => ({ sessions: [...state.sessions, data] }));
-        }
-      },
+    addSession: async (session) => {
+      const newSession = { id: uuidv4(), ...session }
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert(newSession, { returning: 'representation' })
+        .single()
+      if (error) console.error('insert session failed', error)
+      else      set(state => ({ sessions: [...state.sessions, data] }))
+    },
     updateSession: async (id, updates) => {
       const { data, error } = await supabase
         .from('sessions')
