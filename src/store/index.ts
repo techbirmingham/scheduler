@@ -113,58 +113,58 @@ export const useStore = create<State>((set, get) => {
     // 3) CRUD with .select().single()
 
 // — Speakers —
-addSpeaker: async (speaker) => {
-  // 1) strip out any pre-generated id (e.g. "")
-  const { id, ...payload } = speaker
-
-  // 2) insert into Supabase, letting the DB generate its UUID
-  const { data, error } = await supabase
-    .from('speakers')
-    .insert(payload)    // no `id` field
-    .select()           // fetch the full inserted row
-    .single()
-
-  console.log('→ speakers.insert:', { data, error })
-  if (error) {
-    console.error('insert speaker failed', error)
-  } else {
-    // 3) append to local state
-    set((s) => ({ speakers: [...s.speakers, data] }))
-  }
-},
-updateSpeaker: async (id, updates) => {
-  const { data, error } = await supabase
-    .from('speakers')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-
-  console.log('→ speakers.update:', { data, error })
-  if (!error) {
-    set((s) => ({
-      speakers: s.speakers.map((x) => (x.id === id ? data : x)),
-    }))
-  }
-},
-deleteSpeaker: async (id) => {
-  const { error } = await supabase
-    .from('speakers')
-    .delete()
-    .eq('id', id)
-
-  console.log('→ speakers.delete:', { id, error })
-  if (!error) {
-    set((s) => ({
-      speakers: s.speakers.filter((x) => x.id !== id),
-      // also clean up any sessions that referenced this speaker
-      sessions: s.sessions.map((sess) => ({
-        ...sess,
-        speakerIds: sess.speakerIds.filter((sid) => sid !== id),
-      })),
-    }))
-  }
-},
+      addSpeaker: async (speaker) => {
+        // 1) strip out any pre-generated id (e.g. "")
+        const { id, ...payload } = speaker
+      
+        // 2) insert into Supabase, letting the DB generate its UUID
+        const { data, error } = await supabase
+          .from('speakers')
+          .insert(payload)    // no `id` field
+          .select()           // fetch the full inserted row
+          .single()
+      
+        console.log('→ speakers.insert:', { data, error })
+        if (error) {
+          console.error('insert speaker failed', error)
+        } else {
+          // 3) append to local state
+          set((s) => ({ speakers: [...s.speakers, data] }))
+        }
+      },
+      updateSpeaker: async (id, updates) => {
+        const { data, error } = await supabase
+          .from('speakers')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single()
+      
+        console.log('→ speakers.update:', { data, error })
+        if (!error) {
+          set((s) => ({
+            speakers: s.speakers.map((x) => (x.id === id ? data : x)),
+          }))
+        }
+      },
+      deleteSpeaker: async (id) => {
+        const { error } = await supabase
+          .from('speakers')
+          .delete()
+          .eq('id', id)
+      
+        console.log('→ speakers.delete:', { id, error })
+        if (!error) {
+          set((s) => ({
+            speakers: s.speakers.filter((x) => x.id !== id),
+            // also clean up any sessions that referenced this speaker
+            sessions: s.sessions.map((sess) => ({
+              ...sess,
+              speakerIds: sess.speakerIds.filter((sid) => sid !== id),
+            })),
+          }))
+        }
+      },
 
     // — Venues —
     addVenue: async (venue) => {
