@@ -186,11 +186,11 @@ export const useStore = create<State>((set, get) => {
     },
     updateSession: async (id, updates) => {
       const { data, error } = await supabase
-        .from('sessions')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
+        // no need for uuidv4() here:
+        const { data, error } = await supabase
+          .from('sessions')
+          .insert(session)   // session has no `id` field
+          .single()
       if (!error) set(s => ({ sessions: s.sessions.map(x => x.id === id ? data : x) }))
     },
     deleteSession: async (id) => {
