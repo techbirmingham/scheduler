@@ -4,7 +4,7 @@ import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 
 // added for netlify authentication controls
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react'; // removed useState from here since it was already declared above
 import netlifyIdentity from 'netlify-identity-widget';
 
 function AuthControls() {
