@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Edit, Plus, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Edit, Plus, X, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
 
 interface SidebarProps {
@@ -12,6 +12,7 @@ interface FilterSectionProps {
   items: {id: string; name: string}[];
   onAddItem: (name: string) => void;
   onEditItem: (id: string, newName: string) => void;
+  onDeleteItem: (id: string) => void;
   onSelectItem: (id: string) => void;
   selectedItems: string[];
 }
@@ -21,6 +22,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   items,
   onAddItem,
   onEditItem,
+  onDeleteItem,
   onSelectItem,
   selectedItems
 }) => {
@@ -65,6 +67,13 @@ const FilterSection: React.FC<FilterSectionProps> = ({
       handleAddSave();
     } else if (e.key === 'Escape') {
       setIsAddingNew(false);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      onDeleteItem(id);
     }
   };
 
@@ -114,12 +123,20 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                   >
                     {item.name}
                   </label>
-                  <button
-                    onClick={() => handleEditStart(item.id, item.name)}
-                    className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100"
-                  >
-                    <Edit size={14} />
-                  </button>
+                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditStart(item.id, item.name)}
+                      className="text-gray-400 hover:text-gray-600 p-1"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, item.id)}
+                      className="text-gray-400 hover:text-red-600 p-1"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -156,13 +173,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { 
     venues, organizations, programs, experiences, accessLevels, 
     sessionTypes, tracks, selectedFilters, toggleFilter,
-    addVenue, updateVenue,
-    addSessionType, updateSessionType,
-    addTrack, updateTrack,
-    addOrganization, updateOrganization,
-    addProgram, updateProgram,
-    addExperience, updateExperience,
-    addAccessLevel, updateAccessLevel
+    addVenue, updateVenue, deleteVenue,
+    addSessionType, updateSessionType, deleteSessionType,
+    addTrack, updateTrack, deleteTrack,
+    addOrganization, updateOrganization, deleteOrganization,
+    addProgram, updateProgram, deleteProgram,
+    addExperience, updateExperience, deleteExperience,
+    addAccessLevel, updateAccessLevel, deleteAccessLevel
   } = useStore();
 
   if (!isOpen) {
@@ -191,6 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={venues}
           onAddItem={(name) => addVenue({ name })}
           onEditItem={(id, name) => updateVenue(id, { name })}
+          onDeleteItem={deleteVenue}
           onSelectItem={(id) => toggleFilter('venues', id)}
           selectedItems={selectedFilters.venues}
         />
@@ -200,6 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={sessionTypes}
           onAddItem={(name) => addSessionType({ name })}
           onEditItem={(id, name) => updateSessionType(id, { name })}
+          onDeleteItem={deleteSessionType}
           onSelectItem={(id) => toggleFilter('sessionTypes', id)}
           selectedItems={selectedFilters.sessionTypes}
         />
@@ -209,6 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={tracks}
           onAddItem={(name) => addTrack({ name })}
           onEditItem={(id, name) => updateTrack(id, { name })}
+          onDeleteItem={deleteTrack}
           onSelectItem={(id) => toggleFilter('tracks', id)}
           selectedItems={selectedFilters.tracks}
         />
@@ -218,6 +238,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={organizations}
           onAddItem={(name) => addOrganization({ name })}
           onEditItem={(id, name) => updateOrganization(id, { name })}
+          onDeleteItem={deleteOrganization}
           onSelectItem={(id) => toggleFilter('organizations', id)}
           selectedItems={selectedFilters.organizations}
         />
@@ -227,6 +248,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={programs}
           onAddItem={(name) => addProgram({ name })}
           onEditItem={(id, name) => updateProgram(id, { name })}
+          onDeleteItem={deleteProgram}
           onSelectItem={(id) => toggleFilter('programs', id)}
           selectedItems={selectedFilters.programs}
         />
@@ -236,6 +258,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={experiences}
           onAddItem={(name) => addExperience({ name })}
           onEditItem={(id, name) => updateExperience(id, { name })}
+          onDeleteItem={deleteExperience}
           onSelectItem={(id) => toggleFilter('experiences', id)}
           selectedItems={selectedFilters.experiences}
         />
@@ -245,6 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           items={accessLevels}
           onAddItem={(name) => addAccessLevel({ name })}
           onEditItem={(id, name) => updateAccessLevel(id, { name })}
+          onDeleteItem={deleteAccessLevel}
           onSelectItem={(id) => toggleFilter('accessLevels', id)}
           selectedItems={selectedFilters.accessLevels}
         />
