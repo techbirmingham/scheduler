@@ -3,6 +3,27 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 
+// added for netlify authentication controls
+import { useEffect, useState } from 'react';
+import netlifyIdentity from 'netlify-identity-widget';
+
+function AuthControls() {
+  const [user, setUser] = useState(netlifyIdentity.currentUser());
+
+  useEffect(() => {
+    netlifyIdentity.on('login', u => setUser(u));
+    netlifyIdentity.on('logout', () => setUser(null));
+    return () => netlifyIdentity.off();
+  }, []);
+
+  if (user) {
+    return <button onClick={() => netlifyIdentity.logout()}>Log out</button>;
+  } else {
+    return <button onClick={() => netlifyIdentity.open()}>Log in</button>;
+  }
+}
+// end of authentication controls
+
 interface LayoutProps {
   children: React.ReactNode;
 }
