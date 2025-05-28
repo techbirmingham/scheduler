@@ -7,6 +7,7 @@ import { useStore } from '../store'
 import { SessionModal } from '../components/SessionModal'
 import { DateNavigator } from '../components/DateNavigator'
 import { getInitialDate } from '../utils/dates'
+import { format } from 'date-fns' // added for resizing functionality
 
 export const TimelineView: React.FC = () => {
   const { venues, sessions, sessionTypes, selectedFilters } = useStore()
@@ -135,10 +136,12 @@ const resources = venues
           resourceAreaWidth="150px"
           selectable
           selectMirror
-          editable
+          editable={true}
           select={handleDateSelect}
           eventClick={handleEventClick}
           eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
+          eventResizableFromStart={true}
           resourceAreaHeaderContent="Venues"
           resourceLabelDidMount={info => {
             const name = venues.find(v => `venue-${v.id}` === info.resource.id)?.name
