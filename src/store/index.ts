@@ -23,15 +23,7 @@ interface State {
   programs: Program[]
   experiences: Experience[]
   accessLevels: AccessLevel[]
-  selectedFilters: {
-    venues: string[]
-    sessionTypes: string[]
-    tracks: string[]
-    organizations: string[]
-    programs: string[]
-    experiences: string[]
-    accessLevels: string[]
-  }
+  selectedFilters: Record<keyof Omit<State, 'selectedFilters'>, string[]>
 
   addSpeaker: (speaker: Omit<Speaker,'id'>) => Promise<void>
   updateSpeaker: (id: string, updates: Partial<Speaker>) => Promise<void>
@@ -74,7 +66,7 @@ interface State {
 }
 
 export const useStore = create<State>((set, get) => {
-  // 1) on startup, load every table from Supabase
+  // 1) seed from Supabase on startup
   async function loadAll() {
     const [
       { data: speakers },
@@ -110,209 +102,271 @@ export const useStore = create<State>((set, get) => {
       accessLevels:  accesslevels ?? [],
     })
   }
-
-  // immediately load on startup
   loadAll()
 
   return {
-    // 2) initial empty state—Supabase is source of truth
-    speakers:      [],
-    venues:        [],
-    sessions:      [],
-    sessionTypes:  [],
-    tracks:        [],
-    organizations: [],
-    programs:      [],
-    experiences:   [],
-    accessLevels:  [],
+    // 2) start empty—Supabase is source of truth
+    speakers: [], venues: [], sessions: [], sessionTypes: [], tracks: [],
+    organizations: [], programs: [], experiences: [], accessLevels: [],
+    selectedFilters: { venues: [], sessionTypes: [], tracks: [], organizations: [], programs: [], experiences: [], accessLevels: [] },
 
-    selectedFilters: {
-      venues:        [],
-      sessionTypes:  [],
-      tracks:        [],
-      organizations: [],
-      programs:      [],
-      experiences:   [],
-      accessLevels:  [],
-    },
-
-    // 3) CRUD actions wired to Supabase + local state
+    // 3) CRUD with .select().single()
 
     // — Speakers —
     addSpeaker: async (speaker) => {
-      const { data, error } = await supabase.from('speakers').insert(speaker).single()
-      if (!error) set(state => ({ speakers: [...state.speakers, data] }))
+      const { data, error } = await supabase
+        .from('speakers')
+        .insert(speaker)
+        .select()      // ← fetch returned row
+        .single()
+      if (!error) set(s => ({ speakers: [...s.speakers, data] }))
     },
     updateSpeaker: async (id, updates) => {
-      const { data, error } = await supabase.from('speakers').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ speakers: state.speakers.map(s => s.id === id ? data : s) }))
+      const { data, error } = await supabase
+        .from('speakers')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ speakers: s.speakers.map(x => x.id === id ? data : x) }))
     },
     deleteSpeaker: async (id) => {
       const { error } = await supabase.from('speakers').delete().eq('id', id)
-      if (!error) set(state => ({
-        speakers: state.speakers.filter(s => s.id !== id),
-        sessions: state.sessions.map(sess => ({
-          ...sess,
-          speakerIds: sess.speakerIds.filter(sid => sid !== id)
+      if (!error) set(s => ({
+        speakers: s.speakers.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => ({ 
+          ...sess, 
+          speakerIds: sess.speakerIds.filter(sid => sid !== id) 
         }))
       }))
     },
 
     // — Venues —
     addVenue: async (venue) => {
-      const { data, error } = await supabase.from('venues').insert(venue).single()
-      if (!error) set(state => ({ venues: [...state.venues, data] }))
+      const { data, error } = await supabase
+        .from('venues')
+        .insert(venue)
+        .select()
+        .single()
+      if (!error) set(s => ({ venues: [...s.venues, data] }))
     },
     updateVenue: async (id, updates) => {
-      const { data, error } = await supabase.from('venues').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ venues: state.venues.map(v => v.id === id ? data : v) }))
+      const { data, error } = await supabase
+        .from('venues')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ venues: s.venues.map(v => v.id === id ? data : v) }))
     },
     deleteVenue: async (id) => {
       const { error } = await supabase.from('venues').delete().eq('id', id)
-      if (!error) set(state => ({
-        venues: state.venues.filter(v => v.id !== id),
-        sessions: state.sessions.map(sess =>
-          sess.venueId === id ? { ...sess, venueId: '' } : sess
-        )
+      if (!error) set(s => ({
+        venues: s.venues.filter(v => v.id !== id),
+        sessions: s.sessions.map(sess => sess.venueId === id ? { ...sess, venueId: '' } : sess)
       }))
     },
 
     // — Sessions —
     addSession: async (session) => {
-      const { data, error } = await supabase.from('sessions').insert(session).single()
-      if (!error) set(state => ({ sessions: [...state.sessions, data] }))
+      const { data, error } = await supabase
+        .from('sessions')
+        .insert(session)
+        .select()
+        .single()
+      if (!error) set(s => ({ sessions: [...s.sessions, data] }))
     },
     updateSession: async (id, updates) => {
-      const { data, error } = await supabase.from('sessions').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ sessions: state.sessions.map(s => s.id === id ? data : s) }))
+      const { data, error } = await supabase
+        .from('sessions')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ sessions: s.sessions.map(x => x.id === id ? data : x) }))
     },
     deleteSession: async (id) => {
       const { error } = await supabase.from('sessions').delete().eq('id', id)
-      if (!error) set(state => ({ sessions: state.sessions.filter(s => s.id !== id) }))
+      if (!error) set(s => ({ sessions: s.sessions.filter(x => x.id !== id) }))
     },
 
     // — Session Types —
     addSessionType: async (st) => {
-      const { data, error } = await supabase.from('sessiontypes').insert(st).single()
-      if (!error) set(state => ({ sessionTypes: [...state.sessionTypes, data] }))
+      const { data, error } = await supabase
+        .from('sessiontypes')
+        .insert(st)
+        .select()
+        .single()
+      if (!error) set(s => ({ sessionTypes: [...s.sessionTypes, data] }))
     },
     updateSessionType: async (id, updates) => {
-      const { data, error } = await supabase.from('sessiontypes').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ sessionTypes: state.sessionTypes.map(t => t.id === id ? data : t) }))
+      const { data, error } = await supabase
+        .from('sessiontypes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ sessionTypes: s.sessionTypes.map(x => x.id === id ? data : x) }))
     },
     deleteSessionType: async (id) => {
       const { error } = await supabase.from('sessiontypes').delete().eq('id', id)
-      if (!error) set(state => ({
-        sessionTypes: state.sessionTypes.filter(t => t.id !== id),
-        sessions: state.sessions.map(sess =>
-          sess.sessionTypeId === id ? { ...sess, sessionTypeId: '' } : sess
-        )
+      if (!error) set(s => ({
+        sessionTypes: s.sessionTypes.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => sess.sessionTypeId === id ? { ...sess, sessionTypeId: '' } : sess)
       }))
     },
 
     // — Tracks —
     addTrack: async (track) => {
-      const { data, error } = await supabase.from('tracks').insert(track).single()
-      if (!error) set(state => ({ tracks: [...state.tracks, data] }))
+      const { data, error } = await supabase
+        .from('tracks')
+        .insert(track)
+        .select()
+        .single()
+      if (!error) set(s => ({ tracks: [...s.tracks, data] }))
     },
     updateTrack: async (id, updates) => {
-      const { data, error } = await supabase.from('tracks').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ tracks: state.tracks.map(t => t.id === id ? data : t) }))
+      const { data, error } = await supabase
+        .from('tracks')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ tracks: s.tracks.map(x => x.id === id ? data : x) }))
     },
     deleteTrack: async (id) => {
       const { error } = await supabase.from('tracks').delete().eq('id', id)
-      if (!error) set(state => ({
-        tracks: state.tracks.filter(t => t.id !== id),
-        sessions: state.sessions.map(sess => ({
-          ...sess,
-          trackIds: sess.trackIds.filter(tid => tid !== id)
+      if (!error) set(s => ({
+        tracks: s.tracks.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => ({ 
+          ...sess, 
+          trackIds: sess.trackIds.filter(tid => tid !== id) 
         }))
       }))
     },
 
     // — Organizations —
     addOrganization: async (org) => {
-      const { data, error } = await supabase.from('organizations').insert(org).single()
-      if (!error) set(state => ({ organizations: [...state.organizations, data] }))
+      const { data, error } = await supabase
+        .from('organizations')
+        .insert(org)
+        .select()
+        .single()
+      if (!error) set(s => ({ organizations: [...s.organizations, data] }))
     },
     updateOrganization: async (id, updates) => {
-      const { data, error } = await supabase.from('organizations').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ organizations: state.organizations.map(o => o.id === id ? data : o) }))
+      const { data, error } = await supabase
+        .from('organizations')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ organizations: s.organizations.map(x => x.id === id ? data : x) }))
     },
     deleteOrganization: async (id) => {
       const { error } = await supabase.from('organizations').delete().eq('id', id)
-      if (!error) set(state => ({
-        organizations: state.organizations.filter(o => o.id !== id),
-        sessions: state.sessions.map(sess => ({
-          ...sess,
-          organizationIds: sess.organizationIds.filter(oid => oid !== id)
+      if (!error) set(s => ({
+        organizations: s.organizations.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => ({ 
+          ...sess, 
+          organizationIds: sess.organizationIds.filter(oid => oid !== id) 
         }))
       }))
     },
 
     // — Programs —
     addProgram: async (prog) => {
-      const { data, error } = await supabase.from('programs').insert(prog).single()
-      if (!error) set(state => ({ programs: [...state.programs, data] }))
+      const { data, error } = await supabase
+        .from('programs')
+        .insert(prog)
+        .select()
+        .single()
+      if (!error) set(s => ({ programs: [...s.programs, data] }))
     },
     updateProgram: async (id, updates) => {
-      const { data, error } = await supabase.from('programs').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ programs: state.programs.map(p => p.id === id ? data : p) }))
+      const { data, error } = await supabase
+        .from('programs')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ programs: s.programs.map(x => x.id === id ? data : x) }))
     },
     deleteProgram: async (id) => {
       const { error } = await supabase.from('programs').delete().eq('id', id)
-      if (!error) set(state => ({
-        programs: state.programs.filter(p => p.id !== id),
-        sessions: state.sessions.map(sess => ({
-          ...sess,
-          programIds: sess.programIds.filter(pid => pid !== id)
+      if (!error) set(s => ({
+        programs: s.programs.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => ({ 
+          ...sess, 
+          programIds: sess.programIds.filter(pid => pid !== id) 
         }))
       }))
     },
 
     // — Experiences —
     addExperience: async (exp) => {
-      const { data, error } = await supabase.from('experiences').insert(exp).single()
-      if (!error) set(state => ({ experiences: [...state.experiences, data] }))
+      const { data, error } = await supabase
+        .from('experiences')
+        .insert(exp)
+        .select()
+        .single()
+      if (!error) set(s => ({ experiences: [...s.experiences, data] }))
     },
     updateExperience: async (id, updates) => {
-      const { data, error } = await supabase.from('experiences').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ experiences: state.experiences.map(e => e.id === id ? data : e) }))
+      const { data, error } = await supabase
+        .from('experiences')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ experiences: s.experiences.map(x => x.id === id ? data : x) }))
     },
     deleteExperience: async (id) => {
       const { error } = await supabase.from('experiences').delete().eq('id', id)
-      if (!error) set(state => ({
-        experiences: state.experiences.filter(e => e.id !== id),
-        sessions: state.sessions.map(sess => ({
-          ...sess,
-          experienceIds: sess.experienceIds.filter(eid => eid !== id)
+      if (!error) set(s => ({
+        experiences: s.experiences.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => ({ 
+          ...sess, 
+          experienceIds: sess.experienceIds.filter(eid => eid !== id) 
         }))
       }))
     },
 
     // — Access Levels —
     addAccessLevel: async (al) => {
-      const { data, error } = await supabase.from('accesslevels').insert(al).single()
-      if (!error) set(state => ({ accessLevels: [...state.accessLevels, data] }))
+      const { data, error } = await supabase
+        .from('accesslevels')
+        .insert(al)
+        .select()
+        .single()
+      if (!error) set(s => ({ accessLevels: [...s.accessLevels, data] }))
     },
     updateAccessLevel: async (id, updates) => {
-      const { data, error } = await supabase.from('accesslevels').update(updates).eq('id', id).single()
-      if (!error) set(state => ({ accessLevels: state.accessLevels.map(l => l.id === id ? data : l) }))
+‌      const { data, error } = await supabase
+        .from('accesslevels')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+      if (!error) set(s => ({ accessLevels: s.accessLevels.map(x => x.id === id ? data : x) }))
     },
     deleteAccessLevel: async (id) => {
       const { error } = await supabase.from('accesslevels').delete().eq('id', id)
-      if (!error) set(state => ({
-        accessLevels: state.accessLevels.filter(l => l.id !== id),
-        sessions: state.sessions.map(sess => sess.accessLevelId === id ? { ...sess, accessLevelId: '' } : sess)
+      if (!error) set(s => ({
+        accessLevels: s.accessLevels.filter(x => x.id !== id),
+        sessions: s.sessions.map(sess => sess.accessLevelId === id
+          ? { ...sess, accessLevelId: '' }
+          : sess
+        )
       }))
     },
 
     // — Filters —
     toggleFilter: (filterType, id) => {
-      set(state => {
-        const curr = state.selectedFilters[filterType]
+      set(s => {
+        const curr = s.selectedFilters[filterType]
         const next = curr.includes(id) ? curr.filter(x => x !== id) : [...curr, id]
-        return { selectedFilters: { ...state.selectedFilters, [filterType]: next } }
+        return { selectedFilters: { ...s.selectedFilters, [filterType]: next } }
       })
     },
     clearFilters: () => {
