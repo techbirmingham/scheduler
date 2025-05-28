@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import netlifyIdentity from 'netlify-identity-widget'
-import 'netlify-identity-widget/build/netlify-identity.css'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
