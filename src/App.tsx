@@ -8,6 +8,15 @@ import { MapView } from './views/MapView';
 import { SpeakersView } from './views/SpeakersView';
 import { SettingsView } from './views/SettingsView';
 
+// start built-in modal UI you can open with netlifyIdentity.open()
+import netlifyIdentity from 'netlify-identity-widget';
+
+// when your app boots:
+netlifyIdentity.init({
+  APIUrl: 'https://<your-netlify-subdomain>/.netlify/identity'
+});
+// end built-in modal UI you can open with netlifyIdentity.open()
+
 function App() {
   return (
     <Router>
