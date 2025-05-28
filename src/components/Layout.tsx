@@ -1,28 +1,49 @@
+// src/components/Layout.tsx
+import React, { useState, useEffect } from 'react'      // <-- make sure useEffect is here
+import netlifyIdentity from 'netlify-identity-widget'  // <-- install with `npm install netlify-identity-widget`
+import 'netlify-identity-widget/build/netlify-identity.css'
+
+function AuthControls() {
+  const [user, setUser] = useState(netlifyIdentity.currentUser())
+
+  useEffect(() => {
+    // initialize the widget
+    netlifyIdentity.init()
+    // listen for login/logout events
+    netlifyIdentity.on('login', u => setUser(u))
+    netlifyIdentity.on('logout', () => setUser(null))
+    return () => {
+      netlifyIdentity.off('login')
+      netlifyIdentity.off('logout')
+    }
+  }, [])
+
+  if (user) {
+    return (
+      <button
+        onClick={() => netlifyIdentity.logout()}
+        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+      >
+        Log out
+      </button>
+    )
+  } else {
+    return (
+      <button
+        onClick={() => netlifyIdentity.open()}
+        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+      >
+        Log in
+      </button>
+    )
+  }
+}
+// end netlify authorization AuthControls
+
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react';
 import { Sidebar } from './Sidebar';
-
-// added for netlify authentication controls
-import { useEffect } from 'react'; // removed useState from here since it was already declared above
-import netlifyIdentity from 'netlify-identity-widget';
-
-function AuthControls() {
-  const [user, setUser] = useState(netlifyIdentity.currentUser());
-
-  useEffect(() => {
-    netlifyIdentity.on('login', u => setUser(u));
-    netlifyIdentity.on('logout', () => setUser(null));
-    return () => netlifyIdentity.off();
-  }, []);
-
-  if (user) {
-    return <button onClick={() => netlifyIdentity.logout()}>Log out</button>;
-  } else {
-    return <button onClick={() => netlifyIdentity.open()}>Log in</button>;
-  }
-}
-// end of authentication controls
 
 interface LayoutProps {
   children: React.ReactNode;
