@@ -6,32 +6,7 @@ import { Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { DateNavigator } from '../components/DateNavigator';
-import { getInitialDate } from '../utils/dates';
-
-
-const GridView = () => {
-  const updateSession = useStore(s => s.updateSession)
-
-  const handleEventResize = async (info: EventResizeDoneArg) => {
-    const e = info.event
-    await updateSession(e.id, {
-      // format dates/times to what your DB expects
-      date:        format(e.start!, 'yyyy-MM-dd'),
-      startTime:   format(e.start!, 'HH:mm'),
-      endTime:     format(e.end!,   'HH:mm'),
-    })
-  }
-
-  const handleEventDrop = async (info: EventDropArg) => {
-    const e = info.event
-    await updateSession(e.id, {
-      date:        format(e.start!, 'yyyy-MM-dd'),
-      startTime:   format(e.start!, 'HH:mm'),
-      endTime:     format(e.end!,   'HH:mm'),
-    })
-  }
-
-
+import { getInitialDate } from '../utils/dates';x
 export const GridView: React.FC = () => {
   const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
   
@@ -165,7 +140,6 @@ export const GridView: React.FC = () => {
     setSelectedVenue(null);
   };
 
-  
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
@@ -203,13 +177,6 @@ export const GridView: React.FC = () => {
           </button>
         </div>
       </div>
-
-
-
-      
-
-
-      
 
       {/* FullCalendar configured with venue resources and time grid layout */}
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
