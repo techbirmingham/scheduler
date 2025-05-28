@@ -173,42 +173,37 @@ export const useStore = create<State>((set, get) => {
 
 // — Sessions —
 addSession: async (session) => {
-  // 1) Strip off the client-generated id
-  const { id, ...withoutId } = session
+  // strip off any incoming id
+  const { id, sessionTypeId, accessLevelId, ...rest } = session
 
-  // 2) Filter each IDs array
+  // filter arrays
   const cleanArrays = {
-    speakerIds:      (withoutId.speakerIds      || []).filter(Boolean),
-    trackIds:        (withoutId.trackIds        || []).filter(Boolean),
-    organizationIds: (withoutId.organizationIds || []).filter(Boolean),
-    programIds:      (withoutId.programIds      || []).filter(Boolean),
-    experienceIds:   (withoutId.experienceIds   || []).filter(Boolean),
+    speakerIds:      (rest.speakerIds      || []).filter(Boolean),
+    trackIds:        (rest.trackIds        || []).filter(Boolean),
+    organizationIds: (rest.organizationIds || []).filter(Boolean),
+    programIds:      (rest.programIds      || []).filter(Boolean),
+    experienceIds:   (rest.experienceIds   || []).filter(Boolean),
   }
 
-  // 3) Only include the scalar FKs if they’re non-empty strings
-  const cleanScalars: Partial<Pick<typeof withoutId, 'sessionTypeId'|'accessLevelId'>> = {}
-  if (withoutId.sessionTypeId)  cleanScalars.sessionTypeId  = withoutId.sessionTypeId
-  if (withoutId.accessLevelId)  cleanScalars.accessLevelId  = withoutId.accessLevelId
-
-  // 4) Build final payload
-  const payload = {
-    ...withoutId,     // date, title, description, startTime, endTime, venueId, etc.
+  // build payload without any empty-string FK scalars
+  const payload: Record<string, any> = {
+    ...rest,         // date, title, description, startTime, endTime, venueId, etc.
     ...cleanArrays,
-    ...cleanScalars,
   }
+  if (sessionTypeId)   payload.sessionTypeId  = sessionTypeId
+  if (accessLevelId)   payload.accessLevelId  = accessLevelId
+
+  console.log("→ INSERT PAYLOAD:", payload)
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert(payload)   // no `id` → DB uses DEFAULT gen_random_uuid()
-    .select()          // pull entire row back
+    .insert(payload)    // let Postgres gen_random_uuid() for id
+    .select()
     .single()
 
-  console.log("→ sessions.insert:", { data, error })
-  if (error) {
-    console.error("insert session failed", error)
-  } else {
-    set((s) => ({ sessions: [...s.sessions, data] }))
-  }
+  console.log("→ sessions.insert result:", { data, error })
+  if (error) console.error("insert session failed", error)
+  else       set(s => ({ sessions: [...s.sessions, data] }))
 },
     updateSession: async (id, updates) => {
       const { data, error } = await supabase
