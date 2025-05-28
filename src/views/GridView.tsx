@@ -5,7 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
-import { DateNavigator } from '../components/DateNavigator';
+import { DateNavigator } from '../components/DateNavigator'; 
 import { getInitialDate } from '../utils/dates';x
 export const GridView: React.FC = () => {
   const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
