@@ -8,7 +8,7 @@ import { SessionModal } from '../components/SessionModal';
 import { DateNavigator } from '../components/DateNavigator';
 import { getInitialDate } from '../utils/dates';
 export const GridView: React.FC = () => {
-  const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
+  const updateSession = useStore(s => s.updateSession)
 
 
   const handleEventResize = async (info: EventResizeDoneArg) => {
