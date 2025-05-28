@@ -171,20 +171,24 @@ export const useStore = create<State>((set, get) => {
       }))
     },
 
-    // — Sessions —
-    addSession: async (session) => {
-      const newSession = { id: uuidv4(), ...session }
-      
-      // no need for uuidv4() here:
-      const { data, error } = await supabase
-        .from('sessions')
-        .insert(session)   // session has no `id` field
-        .single()
-      console.log('→ sessions.insert:', { data, error })
-      
-      if (error) console.error('insert session failed', error)
-      else      set(state => ({ sessions: [...state.sessions, data] }))
-    },
+// — Sessions —
+addSession: async (session) => {
+  // remove any existing id (it may be "" from your form)
+  const { id, ...payload } = session
+
+  const { data, error } = await supabase
+    .from('sessions')
+    .insert(payload)      // <-- no `id` here, so Postgres uses its DEFAULT gen_random_uuid()
+    .select()             // fetch back the full row
+    .single()
+
+  console.log("→ sessions.insert:", { data, error })
+  if (error) {
+    console.error("insert session failed", error)
+  } else {
+    set((s) => ({ sessions: [...s.sessions, data] }))
+  }
+},
     updateSession: async (id, updates) => {
       const { data, error } = await supabase
         .from('sessions')
