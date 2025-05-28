@@ -80,38 +80,38 @@ export const useStore = create<State>((set, get) => {
       { data: speakers },
       { data: venues },
       { data: sessions },
-      { data: session_types },
+      { data: sessiontypes },
       { data: tracks },
       { data: organizations },
       { data: programs },
       { data: experiences },
-      { data: access_levels },
+      { data: accesslevels },
     ] = await Promise.all([
       supabase.from('speakers').select('*'),
       supabase.from('venues').select('*'),
       supabase.from('sessions').select('*'),
-      supabase.from('session_types').select('*'),
+      supabase.from('sessiontypes').select('*'),
       supabase.from('tracks').select('*'),
       supabase.from('organizations').select('*'),
       supabase.from('programs').select('*'),
       supabase.from('experiences').select('*'),
-      supabase.from('access_levels').select('*'),
+      supabase.from('accesslevels').select('*'),
     ])
 
     set({
-      speakers:      speakers      ?? [],
-      venues:        venues        ?? [],
-      sessions:      sessions      ?? [],
-      sessionTypes:  session_types ?? [],
-      tracks:        tracks        ?? [],
-      organizations: organizations ?? [],
-      programs:      programs      ?? [],
-      experiences:   experiences   ?? [],
-      accessLevels:  access_levels ?? [],
+      speakers:      speakers     ?? [],
+      venues:        venues       ?? [],
+      sessions:      sessions     ?? [],
+      sessionTypes:  sessiontypes ?? [],  // ← lowercase key to match your table
+      tracks:        tracks       ?? [],
+      organizations: organizations?? [],
+      programs:      programs     ?? [],
+      experiences:   experiences  ?? [],
+      accessLevels:  accesslevels ?? [],  // ← lowercase key to match your table
     })
   }
 
-  // immediately fetch them
+  // immediately load on startup
   loadAll()
 
   return {
