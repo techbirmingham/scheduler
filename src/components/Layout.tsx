@@ -1,4 +1,4 @@
-// src/components/Layout.tsx
+// src/components/Layout.tsx 
 
 import React, { useState, useEffect } from 'react'
 import netlifyIdentity from 'netlify-identity-widget'
