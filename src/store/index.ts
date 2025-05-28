@@ -118,9 +118,9 @@ export const useStore = create<State>((set, get) => {
       
       const { data, error } = await supabase
         .from('speakers')
-        .insert(session, { returning: 'representation' })
+        .insert(speaker, { returning: 'representation' })
         .single()
-        console.log('→ sessions.insert:', { data, error })
+        console.log('→ speakers.insert:', { data, error })
       
       if (error) console.error('insert speaker failed', error)
       else      set(state => ({ speakers: [...state.speakers, data] }))
