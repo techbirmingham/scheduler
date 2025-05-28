@@ -6,7 +6,7 @@ import { Plus } from 'lucide-react'
 import { useStore } from '../store'
 import { SessionModal } from '../components/SessionModal'
 import { DateNavigator } from '../components/DateNavigator'
-import { getInitialDate } from '../utils/dates' 
+import { getInitialDate } from '../utils/dates'  
 import { format } from 'date-fns' // added for resizing functionality
 
 export const TimelineView: React.FC = () => {
