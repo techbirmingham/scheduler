@@ -173,13 +173,24 @@ export const useStore = create<State>((set, get) => {
 
 // — Sessions —
 addSession: async (session) => {
-  // remove any existing id (it may be "" from your form)
-  const { id, ...payload } = session
+  // 1) strip out id
+  const { id, ...withOutId } = session
+
+  // 2) for each array field, remove any empty strings:
+  const payload = {
+    ...withOutId,
+    speakerIds:      (withOutId.speakerIds      || []).filter(Boolean),
+    trackIds:        (withOutId.trackIds        || []).filter(Boolean),
+    organizationIds: (withOutId.organizationIds || []).filter(Boolean),
+    programIds:      (withOutId.programIds      || []).filter(Boolean),
+    experienceIds:   (withOutId.experienceIds   || []).filter(Boolean),
+    // accessLevelId and sessionTypeId are scalars so no array-filter needed
+  }
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert(payload)      // <-- no `id` here, so Postgres uses its DEFAULT gen_random_uuid()
-    .select()             // fetch back the full row
+    .insert(payload)    // no `id`, so DEFAULT gen_random_uuid() applies
+    .select()           // fetch full row back
     .single()
 
   console.log("→ sessions.insert:", { data, error })
