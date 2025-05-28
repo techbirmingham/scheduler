@@ -302,7 +302,7 @@
     "@fullcalendar/scrollgrid" "~6.1.17"
     "@fullcalendar/timeline" "~6.1.17"
 
-"@fullcalendar/resource@~6.1.17":
+"@fullcalendar/resource@^6.1.17", "@fullcalendar/resource@~6.1.17":
   version "6.1.17"
   resolved "https://registry.npmjs.org/@fullcalendar/resource/-/resource-6.1.17.tgz"
   integrity sha512-hWnbOWlroIN5Wt4NJmHAJh/F7ge2cV6S0PdGSmLFoZJZJA0hJX9GeYRzyz4MlUoj7f4dGzBlesy2RdC+t5FEMw==
