@@ -342,7 +342,7 @@ export const useStore = create<State>((set, get) => {
       if (!error) set(s => ({ accessLevels: [...s.accessLevels, data] }))
     },
     updateAccessLevel: async (id, updates) => {
-‌      const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('accesslevels')
         .update(updates)
         .eq('id', id)
