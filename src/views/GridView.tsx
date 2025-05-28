@@ -141,6 +141,41 @@ export const GridView: React.FC = () => {
     setSelectedVenue(null);
   };
 
+
+
+
+
+
+
+
+
+  const handleEventResize = async (info: EventResizeDoneArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      // format dates/times to what your DB expects
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
+
+  const handleEventDrop = async (info: EventDropArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
+
+
+
+
+
+  
+
+
+  
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
