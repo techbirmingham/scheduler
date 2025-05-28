@@ -62,7 +62,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <header className="bg-white shadow z-10">
           <div className="px-4 py-3 flex items-center justify-between">
             <h1 className="text-xl font-semibold text-gray-800">
-              Conference Agenda Builder
+              Scheduler
             </h1>
             <nav className="flex items-center space-x-1">
               <NavLink
