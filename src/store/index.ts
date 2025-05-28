@@ -314,17 +314,17 @@ export const useStore = create<State>((set, get) => {
         }
       }),
 
-    clearFilters: () =>
-      set(() => ({
-        selectedFilters: {
-          venues: [],
-          sessionTypes: [],
-          tracks: [],
-          organizations: [],
-          programs: [],
-          experiences: [],
-          accessLevels: [],
-        },
-      })),
-  }
-)
+      clearFilters: () =>
+        set(() => ({
+          selectedFilters: {
+            venues: [],
+            sessionTypes: [],
+            tracks: [],
+            organizations: [],
+            programs: [],
+            experiences: [],
+            accessLevels: [],
+          },
+        })),
+    }),      // ← end of the object you’re returning from create
+));         // ← two parens: one for create’s argument-list, one for the create call itself
