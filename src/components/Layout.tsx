@@ -1,15 +1,18 @@
 // src/components/Layout.tsx
-import React, { useState, useEffect } from 'react'      // <-- make sure useEffect is here
-import netlifyIdentity from 'netlify-identity-widget'  // <-- install with `npm install netlify-identity-widget`
-import 'netlify-identity-widget/build/netlify-identity.css'
 
+import React, { useState, useEffect } from 'react'
+import netlifyIdentity from 'netlify-identity-widget'
+import 'netlify-identity-widget/build/netlify-identity.css'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
+import { Sidebar } from './Sidebar'
+
+// A little component to show “Log in” / “Log out”
 function AuthControls() {
   const [user, setUser] = useState(netlifyIdentity.currentUser())
 
   useEffect(() => {
-    // initialize the widget
     netlifyIdentity.init()
-    // listen for login/logout events
     netlifyIdentity.on('login', u => setUser(u))
     netlifyIdentity.on('logout', () => setUser(null))
     return () => {
@@ -18,78 +21,71 @@ function AuthControls() {
     }
   }, [])
 
-  if (user) {
-    return (
-      <button
-        onClick={() => netlifyIdentity.logout()}
-        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
-      >
-        Log out
-      </button>
-    )
-  } else {
-    return (
-      <button
-        onClick={() => netlifyIdentity.open()}
-        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
-      >
-        Log in
-      </button>
-    )
-  }
+  return user ? (
+    <button
+      onClick={() => netlifyIdentity.logout()}
+      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+    >
+      Log out
+    </button>
+  ) : (
+    <button
+      onClick={() => netlifyIdentity.open()}
+      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+    >
+      Log in
+    </button>
+  )
 }
-// end netlify authorization AuthControls
-
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react';
-import { Sidebar } from './Sidebar';
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const location = useLocation();
-  
-  const isMapView = location.pathname === '/map';
-  const isSpeakersView = location.pathname === '/speakers';
-  const isSettingsView = location.pathname === '/settings';
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const location = useLocation()
+
+  const isMapView      = location.pathname === '/map'
+  const isSpeakersView = location.pathname === '/speakers'
+  const isSettingsView = location.pathname === '/settings'
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar - only show on views that need filtering */}
       {!isMapView && !isSpeakersView && !isSettingsView && (
-        <Sidebar isOpen={sidebarOpen} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <Sidebar
+          isOpen={sidebarOpen}
+          toggleSidebar={() => setSidebarOpen(o => !o)}
+        />
       )}
-      
+
       <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Header */}
         <header className="bg-white shadow z-10">
           <div className="px-4 py-3 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">Conference Agenda Builder</h1>
-            <nav className="flex space-x-1">
-              <NavLink 
-                to="/" 
-                className={({ isActive }) => 
+            <h1 className="text-xl font-semibold text-gray-800">
+              Conference Agenda Builder
+            </h1>
+            <nav className="flex items-center space-x-1">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
-                end
               >
                 <Calendar size={16} />
                 <span>Grid</span>
               </NavLink>
-              <NavLink 
-                to="/timeline" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/timeline"
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
@@ -97,12 +93,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Clock size={16} />
                 <span>Timeline</span>
               </NavLink>
-              <NavLink 
-                to="/list" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/list"
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
@@ -110,12 +106,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <List size={16} />
                 <span>List</span>
               </NavLink>
-              <NavLink 
-                to="/map" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/map"
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
@@ -123,12 +119,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Map size={16} />
                 <span>Map</span>
               </NavLink>
-              <NavLink 
-                to="/speakers" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/speakers"
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
@@ -136,12 +132,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Users size={16} />
                 <span>Speakers</span>
               </NavLink>
-              <NavLink 
-                to="/settings" 
-                className={({ isActive }) => 
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
-                    isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`
                 }
@@ -149,15 +145,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Settings size={16} />
                 <span>Settings</span>
               </NavLink>
+
+              {/* <-- here’s our login/logout button */}
+              <AuthControls />
             </nav>
           </div>
         </header>
-        
-        {/* Main content */}
+
         <main className="flex-1 overflow-auto bg-gray-50 p-4">
           {children}
         </main>
       </div>
     </div>
-  );
-};
+  )
+}
