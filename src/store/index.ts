@@ -3,15 +3,15 @@ import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase } from '../utils/supabaseClient'
 
-export interface Speaker { /* … */ }
-export interface Venue     { /* … */ }
-export interface Session   { /* … */ }
-export interface SessionType { /* … */ }
+export interface Speaker    { /* … */ }
+export interface Venue      { /* … */ }
+export interface Session    { /* … */ }
+export interface SessionType{ /* … */ }
 export interface Track      { /* … */ }
 export interface Organization { /* … */ }
 export interface Program    { /* … */ }
 export interface Experience { /* … */ }
-export interface AccessLevel { /* … */ }
+export interface AccessLevel{ /* … */ }
 
 interface State {
   speakers: Speaker[]
@@ -74,89 +74,89 @@ interface State {
 }
 
 export const useStore = create<State>((set, get) => {
-  // helper to seed from Supabase
+  // 1) on startup, load every table from Supabase
   async function loadAll() {
     const [
       { data: speakers },
       { data: venues },
       { data: sessions },
-      { data: sessionTypes },
+      { data: session_types },
       { data: tracks },
       { data: organizations },
       { data: programs },
       { data: experiences },
-      { data: accessLevels },
+      { data: access_levels },
     ] = await Promise.all([
       supabase.from('speakers').select('*'),
       supabase.from('venues').select('*'),
       supabase.from('sessions').select('*'),
-      supabase.from('sessionTypes').select('*'),
+      supabase.from('session_types').select('*'),
       supabase.from('tracks').select('*'),
       supabase.from('organizations').select('*'),
       supabase.from('programs').select('*'),
       supabase.from('experiences').select('*'),
-      supabase.from('accessLevels').select('*'),
+      supabase.from('access_levels').select('*'),
     ])
+
     set({
-      speakers: speakers ?? [],
-      venues: venues ?? [],
-      sessions: sessions ?? [],
-      sessionTypes: sessionTypes ?? [],
-      tracks: tracks ?? [],
+      speakers:      speakers      ?? [],
+      venues:        venues        ?? [],
+      sessions:      sessions      ?? [],
+      sessionTypes:  session_types ?? [],
+      tracks:        tracks        ?? [],
       organizations: organizations ?? [],
-      programs: programs ?? [],
-      experiences: experiences ?? [],
-      accessLevels: accessLevels ?? [],
+      programs:      programs      ?? [],
+      experiences:   experiences   ?? [],
+      accessLevels:  access_levels ?? [],
     })
   }
 
-  // immediately load on startup
+  // immediately fetch them
   loadAll()
 
   return {
-    // initial empty state—supabase is source of truth
-    speakers: [],
-    venues: [],
-    sessions: [],
-    sessionTypes: [],
-    tracks: [],
+    // 2) initial empty state—Supabase is our source of truth
+    speakers:      [],
+    venues:        [],
+    sessions:      [],
+    sessionTypes:  [],
+    tracks:        [],
     organizations: [],
-    programs: [],
-    experiences: [],
-    accessLevels: [],
+    programs:      [],
+    experiences:   [],
+    accessLevels:  [],
 
     selectedFilters: {
-      venues: [],
-      sessionTypes: [],
-      tracks: [],
+      venues:        [],
+      sessionTypes:  [],
+      tracks:        [],
       organizations: [],
-      programs: [],
-      experiences: [],
-      accessLevels: [],
+      programs:      [],
+      experiences:   [],
+      accessLevels:  [],
     },
 
-    // … your add/update/delete/toggle/clear actions here …
+    // 3) your add/update/delete/toggle/clear actions go here (unchanged)
+    /* … */
 
     toggleFilter: (filterType, id) =>
-      set((state) => {
-        const current = state.selectedFilters[filterType]
-        const next = current.includes(id)
-          ? current.filter((x) => x !== id)
-          : [...current, id]
+      set(state => {
+        const curr = state.selectedFilters[filterType]
+        const next = curr.includes(id) ? curr.filter(x => x !== id) : [...curr, id]
         return { selectedFilters: { ...state.selectedFilters, [filterType]: next } }
       }),
 
     clearFilters: () =>
       set(() => ({
         selectedFilters: {
-          venues: [],
-          sessionTypes: [],
-          tracks: [],
+          venues:        [],
+          sessionTypes:  [],
+          tracks:        [],
           organizations: [],
-          programs: [],
-          experiences: [],
-          accessLevels: [],
+          programs:      [],
+          experiences:   [],
+          accessLevels:  [],
         },
       })),
   }
-});  // ← only one “)” here to close create(), and then semicolon
+})
