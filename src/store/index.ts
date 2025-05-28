@@ -115,10 +115,13 @@ export const useStore = create<State>((set, get) => {
     // — Speakers —
     addSpeaker: async (speaker) => {
       const newSpeaker = { id: uuidv4(), ...speaker }
+      
       const { data, error } = await supabase
         .from('speakers')
-        .insert(newSpeaker, { returning: 'representation' })
+        .insert(session, { returning: 'representation' })
         .single()
+        console.log('→ sessions.insert:', { data, error })
+      
       if (error) console.error('insert speaker failed', error)
       else      set(state => ({ speakers: [...state.speakers, data] }))
     },
@@ -171,10 +174,13 @@ export const useStore = create<State>((set, get) => {
     // — Sessions —
     addSession: async (session) => {
       const newSession = { id: uuidv4(), ...session }
+      
       const { data, error } = await supabase
         .from('sessions')
-        .insert(newSession, { returning: 'representation' })
+        .insert(session, { returning: 'representation' })
         .single()
+      console.log('→ sessions.insert:', { data, error })
+      
       if (error) console.error('insert session failed', error)
       else      set(state => ({ sessions: [...state.sessions, data] }))
     },
