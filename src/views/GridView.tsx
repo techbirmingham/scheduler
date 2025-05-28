@@ -8,10 +8,10 @@ import { SessionModal } from '../components/SessionModal';
 import { DateNavigator } from '../components/DateNavigator';
 import { getInitialDate } from '../utils/dates';
 export const GridView: React.FC = () => {
-  const updateSession = useStore(s => s.updateSession) 
+  const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
 
 
-  const handleEventResize = async (info: EventResizeDoneArg) => {
+  const handleEventResize = async (info: EventResizeDoneArg) => { 
     const e = info.event
     await updateSession(e.id, {
       // format dates/times to what your DB expects
