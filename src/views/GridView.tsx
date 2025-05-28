@@ -165,7 +165,7 @@ export const GridView: React.FC = () => {
       date:        format(e.start!, 'yyyy-MM-dd'),
       startTime:   format(e.start!, 'HH:mm'),
       endTime:     format(e.end!,   'HH:mm'),
-    })
+    }
 
 
 
