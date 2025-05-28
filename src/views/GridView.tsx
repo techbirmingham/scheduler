@@ -6,7 +6,7 @@ import { Plus, ZoomIn, ZoomOut } from 'lucide-react';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { DateNavigator } from '../components/DateNavigator';
-import { getInitialDate } from '../utils/dates';
+import { getInitialDate } from '../utils/dates'; 
 export const GridView: React.FC = () => {
   const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
   
