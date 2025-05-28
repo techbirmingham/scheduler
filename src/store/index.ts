@@ -173,24 +173,34 @@ export const useStore = create<State>((set, get) => {
 
 // — Sessions —
 addSession: async (session) => {
-  // 1) strip out id
-  const { id, ...withOutId } = session
+  // 1) Strip off the client-generated id
+  const { id, ...withoutId } = session
 
-  // 2) for each array field, remove any empty strings:
+  // 2) Filter each IDs array
+  const cleanArrays = {
+    speakerIds:      (withoutId.speakerIds      || []).filter(Boolean),
+    trackIds:        (withoutId.trackIds        || []).filter(Boolean),
+    organizationIds: (withoutId.organizationIds || []).filter(Boolean),
+    programIds:      (withoutId.programIds      || []).filter(Boolean),
+    experienceIds:   (withoutId.experienceIds   || []).filter(Boolean),
+  }
+
+  // 3) Only include the scalar FKs if they’re non-empty strings
+  const cleanScalars: Partial<Pick<typeof withoutId, 'sessionTypeId'|'accessLevelId'>> = {}
+  if (withoutId.sessionTypeId)  cleanScalars.sessionTypeId  = withoutId.sessionTypeId
+  if (withoutId.accessLevelId)  cleanScalars.accessLevelId  = withoutId.accessLevelId
+
+  // 4) Build final payload
   const payload = {
-    ...withOutId,
-    speakerIds:      (withOutId.speakerIds      || []).filter(Boolean),
-    trackIds:        (withOutId.trackIds        || []).filter(Boolean),
-    organizationIds: (withOutId.organizationIds || []).filter(Boolean),
-    programIds:      (withOutId.programIds      || []).filter(Boolean),
-    experienceIds:   (withOutId.experienceIds   || []).filter(Boolean),
-    // accessLevelId and sessionTypeId are scalars so no array-filter needed
+    ...withoutId,     // date, title, description, startTime, endTime, venueId, etc.
+    ...cleanArrays,
+    ...cleanScalars,
   }
 
   const { data, error } = await supabase
     .from('sessions')
-    .insert(payload)    // no `id`, so DEFAULT gen_random_uuid() applies
-    .select()           // fetch full row back
+    .insert(payload)   // no `id` → DB uses DEFAULT gen_random_uuid()
+    .select()          // pull entire row back
     .single()
 
   console.log("→ sessions.insert:", { data, error })
