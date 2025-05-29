@@ -156,6 +156,12 @@ tr.cursor-pointer {
 tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
+
+/* add bottom borders to the venue column cells */
+.fc .fc-datagrid-body td.fc-datagrid-cell.fc-resource {
+  border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+}
+
 /* give every timeline lane a bottom border */
 .fc .fc-timeline-body .fc-timeline-lane-frame {
   border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
