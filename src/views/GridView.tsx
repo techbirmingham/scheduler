@@ -119,12 +119,17 @@ const [zoomLevel, setZoomLevel] = useState(3)
     setModalOpen(true);
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingSession(null);
-    setSelectedTimeRange(null);
-    setSelectedVenue(null);
-  };
+const closeModal = () => {
+  // 1) clear FullCalendar’s select highlight
+  const api = calendarRef.current?.getApi();
+  if (api) api.unselect();
+
+  // 2) then reset your React state
+  setModalOpen(false);
+  setEditingSession(null);
+  setSelectedTimeRange(null);
+  setSelectedVenue(null);
+};
 
   return (
     <div className="h-full flex flex-col">
