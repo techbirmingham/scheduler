@@ -162,24 +162,7 @@ tr.cursor-pointer:hover {
   border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
 } 
 
-
-
-
-
-
-
-
-/* 1) The actual resource-list table body */
-.fc .fc-datagrid-body tbody tr:last-child td {
-  border-bottom: 10px solid #e5e7eb !important;
-}
-
-/* 2) And also in the sync-table wrapper for timeline view */
-.fc .fc-scrollgrid-sync-table tbody tr:last-child td {
-  border-bottom: 10px solid #e5e7eb !important;
-}
-
-/* blanket last-row border on any FC resource-column cell */
-.fc [data-resource-id] + tr:last-child td {
-  border-bottom: 10px solid #e5e7eb !important;
+/* add a bottom border to the last “frame” cell */
+.fc .fc-datagrid-cell-frame:last-child {
+  border-bottom: 2px solid #e5e7eb;
 }
