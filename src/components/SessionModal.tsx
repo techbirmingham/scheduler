@@ -400,4 +400,4 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       </div>
     </div>
   )
-} 
+}
