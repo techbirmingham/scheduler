@@ -129,7 +129,7 @@ const closeModal = () => {
           initialView="resourceTimelineDay"
           initialDate={selectedDate}
           headerToolbar={false}
-          slotMinTime="06:00:00"
+          slotMinTime="06:00:00" 
           slotMaxTime="22:00:00"
           slotDuration="00:15:00"
           snapDuration="00:15:00"
