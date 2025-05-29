@@ -9,7 +9,7 @@ import { DateNavigator } from '../components/DateNavigator';
 import { getInitialDate } from '../utils/dates';
 
 export const GridView: React.FC = () => {
-  const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
+  const updateSession = useStore(s => s.updateSession)
   const calendarRef = useRef<FullCalendar>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getInitialDate(sessions));
