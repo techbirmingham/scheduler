@@ -152,7 +152,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-3xl"
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl"
         onClick={e => e.stopPropagation()}
       >
         {/* header */}
@@ -165,7 +165,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-20rem)]">
+        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-16rem)]">
           <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Title */}
