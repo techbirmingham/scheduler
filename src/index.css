@@ -157,17 +157,12 @@ tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
 
-/* — Grid‐View (resource‐timegrid) uses a “datagrid” for the left column: */
-.fc .fc-datagrid-body td.fc-datagrid-cell.fc-resource {
-  border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
-}
-
-/* — Timeline‐View (resource-timeline) uses a “scrollgrid” for the left column: */
-.fc .fc-scrollgrid-sync-table td.fc-datagrid-cell.fc-resource {
-  border-bottom: 1px solid #e5e7eb;
-}
-
 /* give every timeline lane a bottom border */
 .fc .fc-timeline-body .fc-timeline-lane-frame {
   border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
 } 
+
+/* Timeline-view: ensure the last venue row has a bottom border */
+.fc .fc-scrollgrid-sync-table tbody tr:last-child td.fc-datagrid-cell.fc-resource {
+  border-bottom: 1px solid #e5e7eb !important;
+}
