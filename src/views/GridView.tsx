@@ -192,4 +192,4 @@ export const GridView: React.FC = () => {
       )}
     </div>
   );
-};
+}; 
