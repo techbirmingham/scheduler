@@ -7,31 +7,9 @@ import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { DateNavigator } from '../components/DateNavigator';
 import { getInitialDate } from '../utils/dates';
+
 export const GridView: React.FC = () => {
   const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
-
-
-  const handleEventResize = async (info: EventResizeDoneArg) => {
-    const e = info.event
-    await updateSession(e.id, {
-      // format dates/times to what your DB expects
-      date:        format(e.start!, 'yyyy-MM-dd'),
-      startTime:   format(e.start!, 'HH:mm'),
-      endTime:     format(e.end!,   'HH:mm'),
-    })
-  }
-
-  const handleEventDrop = async (info: EventDropArg) => {
-    const e = info.event
-    await updateSession(e.id, {
-      date:        format(e.start!, 'yyyy-MM-dd'),
-      startTime:   format(e.start!, 'HH:mm'),
-      endTime:     format(e.end!,   'HH:mm'),
-    })
-  }
-
-
-
   
   const calendarRef = useRef<FullCalendar>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -232,7 +210,7 @@ export const GridView: React.FC = () => {
             hour12: true,
             meridiem: 'short'
           }]}
-        />
+        /> 
       </div>
 
       {/* Conditionally render session modal */}
