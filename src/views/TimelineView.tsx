@@ -66,12 +66,17 @@ export const TimelineView: React.FC = () => {
     setSelectedVenue(null)
     setModalOpen(true)
   }
-  const closeModal = () => {
-    setModalOpen(false)
-    setEditingSession(null)
-    setSelectedTimeRange(null)
-    setSelectedVenue(null)
-  }
+const closeModal = () => {
+  // 1) clear FullCalendar’s select highlight
+  const api = calendarRef.current?.getApi();
+  if (api) api.unselect();
+
+  // 2) then reset your React state
+  setModalOpen(false);
+  setEditingSession(null);
+  setSelectedTimeRange(null);
+  setSelectedVenue(null);
+};
 
   // when you drag a session to a new slot
   const handleEventDrop = (info: any) => {
