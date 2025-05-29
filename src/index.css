@@ -165,5 +165,5 @@ tr.cursor-pointer:hover {
 /* add a bottom border to the last “frame” cell */
 
 .fc .fc-datagrid-cell-frame:last-child {
-  border-bottom: 4px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
 }
