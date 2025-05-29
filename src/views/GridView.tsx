@@ -132,25 +132,32 @@ const closeModal = () => {
 };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold text-gray-800">Grid View</h1>
-        <button onClick={handleAddClick} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center">
-          <Plus size={16} className="mr-1" /> Add Session
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between mb-4">
-        <DateNavigator date={selectedDate} onDateChange={setSelectedDate} />
-        <div className="flex items-center space-x-2">
-          <button onClick={handleZoomIn} disabled={zoomLevel === slotDurations.length - 1} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50">
-            <ZoomIn size={16} />
-          </button>
-          <button onClick={handleZoomOut} disabled={zoomLevel === 0} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50">
-            <ZoomOut size={16} />
-          </button>
-        </div>
-      </div>
+    <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center justify-between">
+  <div className="flex items-center space-x-2">
+    <DateNavigator date={selectedDate} onDateChange={setSelectedDate} />
+    <button
+      onClick={handleZoomIn}
+      disabled={zoomLevel === slotDurations.length - 1}
+      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <ZoomIn size={16} />
+    </button>
+    <button
+      onClick={handleZoomOut}
+      disabled={zoomLevel === 0}
+      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <ZoomOut size={16} />
+    </button>
+  </div>
+  <button
+    onClick={handleAddClick}
+    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
+  >
+    <Plus size={16} className="mr-1" />
+    Add Session
+  </button>
+</div>
 
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
         <FullCalendar
