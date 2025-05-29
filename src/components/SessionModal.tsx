@@ -152,7 +152,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-5xl"
+        className="bg-white rounded-lg shadow-xl w-full max-w-4xl"
         onClick={e => e.stopPropagation()}
       >
         {/* header */}
