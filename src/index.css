@@ -164,5 +164,5 @@ tr.cursor-pointer:hover {
 
 /* Timeline-view: ensure the last venue row has a bottom border */
 .fc .fc-scrollgrid-sync-table tbody tr:last-child td.fc-datagrid-cell.fc-resource {
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 5px solid #e5e7eb !important;
 }
