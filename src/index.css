@@ -29,10 +29,8 @@
 }
 
 /* Reduce venue text size */
-.fc-resource-timeline-divider,
-.fc-resource-group-lane,
-.fc-resource-lane {
-  font-size: 0.875rem !important;
+.fc .fc-resource-area .fc-datagrid-cell-content {
+  font-size: 0.875rem !important;  /* .875rem == Tailwind’s text-sm */
 }
 
 /* Make venue labels uppercase */
