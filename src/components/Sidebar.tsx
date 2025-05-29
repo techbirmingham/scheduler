@@ -1,5 +1,12 @@
 import React, { useState } from 'react'
-import { ChevronRight, ChevronDown, Edit, Plus, X, Trash2 } from 'lucide-react'
+import {
+  ChevronRight,
+  ChevronDown,
+  Edit,
+  Plus,
+  X,
+  Trash2
+} from 'lucide-react'
 import { useStore } from '../store'
 
 interface SidebarProps {
@@ -24,7 +31,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   onEditItem,
   onDeleteItem,
   onSelectItem,
-  selectedItems,
+  selectedItems
 }) => {
   const [isOpen, setIsOpen] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -32,41 +39,18 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [newItemValue, setNewItemValue] = useState('')
 
-  const handleEditStart = (id: string, name: string) => {
+  const startEdit = (id: string, name: string) => {
     setEditingId(id)
     setEditValue(name)
   }
-
-  const handleEditSave = (id: string) => {
-    if (editValue.trim()) onEditItem(id, editValue)
+  const saveEdit = (id: string) => {
+    if (editValue.trim()) onEditItem(id, editValue.trim())
     setEditingId(null)
   }
-
-  const handleAddClick = () => {
-    setIsAddingNew(true)
+  const saveNew = () => {
+    if (newItemValue.trim()) onAddItem(newItemValue.trim())
     setNewItemValue('')
-    setTimeout(() => {
-      const input = document.querySelector('.new-item-input') as HTMLInputElement
-      input?.focus()
-    }, 0)
-  }
-
-  const handleAddSave = () => {
-    if (newItemValue.trim()) onAddItem(newItemValue)
     setIsAddingNew(false)
-    setNewItemValue('')
-  }
-
-  const handleAddKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') handleAddSave()
-    else if (e.key === 'Escape') setIsAddingNew(false)
-  }
-
-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      onDeleteItem(id)
-    }
   }
 
   return (
@@ -75,92 +59,99 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         className="flex items-center justify-between mb-2 cursor-pointer"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex items-center">
-          {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <h3 className="font-medium text-gray-700 ml-1">{title}</h3>
-        </div>
+        {isOpen ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
+        <h3 className="ml-1 font-medium text-gray-700">{title}</h3>
       </div>
-
       {isOpen && (
         <div className="ml-6 space-y-2">
           {items.map(item => (
-            <div key={item.id} className="flex items-center justify-between group">
+            <div
+              key={item.id}
+              className="flex items-center justify-between group"
+            >
               {editingId === item.id ? (
-                <div className="flex items-center flex-1">
-                  <input
-                    type="text"
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onBlur={() => handleEditSave(item.id)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleEditSave(item.id)
-                      if (e.key === 'Escape') setEditingId(null)
-                    }}
-                    className="flex-1 py-1 px-2 border border-gray-300 rounded"
-                    autoFocus
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onBlur={() => saveEdit(item.id)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') saveEdit(item.id)
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  className="flex-1 py-1 px-2 border rounded border-gray-300"
+                  autoFocus
+                />
               ) : (
-                <div className="flex items-center flex-1">
-                  <input
-                    type="checkbox"
-                    id={`filter-${item.id}`}
-                    checked={selectedItems.includes(item.id)}
-                    onChange={() => onSelectItem(item.id)}
-                    className="mr-2"
-                  />
-                  {/* color dot */}
-                  {item.color && (
-                    <span
-                      className="w-3 h-3 rounded-full mr-1"
-                      style={{ backgroundColor: item.color }}
+                <>
+                  <div className="flex items-center flex-1">
+                    {item.color && (
+                      <span
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: item.color }}
+                      />
+                    )}
+                    <input
+                      type="checkbox"
+                      id={`${title}-${item.id}`}
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => onSelectItem(item.id)}
+                      className="mr-2"
                     />
-                  )}
-                  <label
-                    htmlFor={`filter-${item.id}`}
-                    className="text-sm text-gray-600 cursor-pointer flex-1"
-                  >
-                    {item.name}
-                  </label>
+                    <label
+                      htmlFor={`${title}-${item.id}`}
+                      className="text-sm text-gray-600 cursor-pointer flex-1"
+                    >
+                      {item.name}
+                    </label>
+                  </div>
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
-                      onClick={() => handleEditStart(item.id, item.name)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      onClick={() => startEdit(item.id, item.name)}
+                      className="p-1 text-gray-400 hover:text-gray-600"
                     >
-                      <Edit size={14} />
+                      <Edit size={14}/>
                     </button>
                     <button
-                      onClick={e => handleDeleteClick(e, item.id)}
-                      className="text-gray-400 hover:text-red-600 p-1"
+                      onClick={e => {
+                        e.stopPropagation()
+                        if (
+                          window.confirm(
+                            `Delete "${item.name}"?`
+                          )
+                        ) {
+                          onDeleteItem(item.id)
+                        }
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-600"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={14}/>
                     </button>
                   </div>
-                </div>
+                </>
               )}
             </div>
           ))}
-
           {isAddingNew ? (
-            <div className="flex items-center">
-              <input
-                type="text"
-                value={newItemValue}
-                onChange={e => setNewItemValue(e.target.value)}
-                onBlur={handleAddSave}
-                onKeyDown={handleAddKeyDown}
-                placeholder={`New ${title.toLowerCase().slice(0, -1)}`}
-                className="flex-1 py-1 px-2 border border-gray-300 rounded new-item-input"
-                autoFocus
-              />
-            </div>
+            <input
+              type="text"
+              value={newItemValue}
+              onChange={e => setNewItemValue(e.target.value)}
+              onBlur={saveNew}
+              onKeyDown={e => {
+                if (e.key === 'Enter') saveNew()
+                if (e.key === 'Escape') setIsAddingNew(false)
+              }}
+              placeholder={`New ${title.slice(0, -1)}`}
+              className="w-full py-1 px-2 border rounded border-gray-300"
+              autoFocus
+            />
           ) : (
             <button
-              onClick={handleAddClick}
+              onClick={() => setIsAddingNew(true)}
               className="flex items-center text-sm text-indigo-600 hover:text-indigo-800"
             >
-              <Plus size={14} className="mr-1" />
-              Add Option
+              <Plus size={14} className="mr-1"/> Add Option
             </button>
           )}
         </div>
@@ -169,15 +160,18 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   )
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  toggleSidebar
+}) => {
   const {
     venues,
+    sessionTypes,
+    tracks,
     organizations,
     programs,
     experiences,
     accessLevels,
-    sessionTypes,
-    tracks,
     selectedFilters,
     toggleFilter,
     addVenue,
@@ -200,30 +194,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     deleteExperience,
     addAccessLevel,
     updateAccessLevel,
-    deleteAccessLevel,
+    deleteAccessLevel
   } = useStore()
 
   if (!isOpen) {
     return (
       <button
         onClick={toggleSidebar}
-        className="bg-white p-2 rounded-r-md shadow fixed top-20 left-0"
+        className="fixed top-20 left-0 bg-white p-2 rounded-r-md shadow"
       >
-        <ChevronRight size={16} />
+        <ChevronRight size={16}/>
       </button>
     )
   }
 
   return (
-    <div className="w-64 bg-white border-r overflow-y-auto flex flex-col h-full">
-      <div className="p-4 border-b flex items-center justify-between">
+    <div className="flex flex-col h-full w-64 bg-white border-r overflow-y-auto">
+      <div className="flex items-center justify-between p-4 border-b">
         <h2 className="font-medium text-gray-800">Filters</h2>
         <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-700">
-          <X size={16} />
+          <X size={16}/>
         </button>
       </div>
-
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 p-4 overflow-y-auto">
         <FilterSection
           title="Venues"
           items={venues}
@@ -244,7 +237,55 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           selectedItems={selectedFilters.sessionTypes}
         />
 
-        {/* ...the rest of your FilterSections unchanged... */}
+        <FilterSection
+          title="Tracks"
+          items={tracks}
+          onAddItem={name => addTrack({ name })}
+          onEditItem={(id, name) => updateTrack(id, { name })}
+          onDeleteItem={deleteTrack}
+          onSelectItem={id => toggleFilter('tracks', id)}
+          selectedItems={selectedFilters.tracks}
+        />
+
+        <FilterSection
+          title="Partner Organizations"
+          items={organizations}
+          onAddItem={name => addOrganization({ name })}
+          onEditItem={(id, name) => updateOrganization(id, { name })}
+          onDeleteItem={deleteOrganization}
+          onSelectItem={id => toggleFilter('organizations', id)}
+          selectedItems={selectedFilters.organizations}
+        />
+
+        <FilterSection
+          title="Programs"
+          items={programs}
+          onAddItem={name => addProgram({ name })}
+          onEditItem={(id, name) => updateProgram(id, { name })}
+          onDeleteItem={deleteProgram}
+          onSelectItem={id => toggleFilter('programs', id)}
+          selectedItems={selectedFilters.programs}
+        />
+
+        <FilterSection
+          title="Experiences"
+          items={experiences}
+          onAddItem={name => addExperience({ name })}
+          onEditItem={(id, name) => updateExperience(id, { name })}
+          onDeleteItem={deleteExperience}
+          onSelectItem={id => toggleFilter('experiences', id)}
+          selectedItems={selectedFilters.experiences}
+        />
+
+        <FilterSection
+          title="Access Levels"
+          items={accessLevels}
+          onAddItem={name => addAccessLevel({ name })}
+          onEditItem={(id, name) => updateAccessLevel(id, { name })}
+          onDeleteItem={deleteAccessLevel}
+          onSelectItem={id => toggleFilter('accessLevels', id)}
+          selectedItems={selectedFilters.accessLevels}
+        />
       </div>
     </div>
   )
