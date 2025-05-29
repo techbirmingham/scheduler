@@ -149,7 +149,7 @@ const closeModal = () => {
         />
       </div>
 
-      {modalOpen && ( 
+      {modalOpen && (
         <SessionModal
           isOpen={modalOpen}
           onClose={closeModal}
