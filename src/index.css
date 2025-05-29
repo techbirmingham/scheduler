@@ -158,5 +158,5 @@ tr.cursor-pointer:hover {
 }
 /* give every timeline lane a bottom border */
 .fc .fc-timeline-body .fc-timeline-lane-frame {
-  border-bottom: 100px solid #e5e7eb; /* Tailwind’s gray-200 */
-}
+  border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
+} 
