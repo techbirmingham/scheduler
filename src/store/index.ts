@@ -226,14 +226,26 @@ addSession: async (session) => {
   if (error) console.error("insert session failed", error)
   else       set(s => ({ sessions: [...s.sessions, data] }))
 },
+
+
+
+    
     updateSession: async (id, updates) => {
-      const { data, error } = await supabase
-        .from('sessions')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
-      if (!error) set(s => ({ sessions: s.sessions.map(x => x.id === id ? data : x) }))
+  const { data, error } = await supabase
+    .from('sessions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  if (!error) set(s => ({
+    sessions: s.sessions.map(x => x.id === id ? data : x)
+  }))
+}
+
+
+
+
+    
     },
     deleteSession: async (id) => {
       const { error } = await supabase.from('sessions').delete().eq('id', id)
