@@ -75,9 +75,7 @@ const [zoomLevel, setZoomLevel] = useState(3)
       };
     });
 
-  const resources = venues
-  .filter(v => visibleVenueIds.includes(v.id))
-  .map(v => ({ id: v.id, title: v.name.toUpperCase() })) 
+  const resources = venues.map(v => ({ id: v.id, title: v.name.toUpperCase() }));
 
   const handleDateSelect = (arg: any) => {
     const startStr = arg.startStr;
