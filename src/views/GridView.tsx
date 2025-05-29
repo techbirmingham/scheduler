@@ -160,7 +160,7 @@ const closeModal = () => {
           initialDate={selectedDate}
           headerToolbar={false}
           allDaySlot={false}
-          slotMinTime="08:00:00"
+          slotMinTime="06:00:00"
           slotMaxTime="22:00:00"
           slotDuration={currentSlotDuration}
           snapDuration={currentSlotDuration}
