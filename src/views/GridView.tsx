@@ -23,8 +23,21 @@ export const GridView: React.FC = () => {
     if (api) api.gotoDate(selectedDate);
   }, [selectedDate]);
 
-  const slotDurations = ['00:60:00', '00:30:00', '00:15:00', '00:10:00', '00:05:00'];
-  const [zoomLevel, setZoomLevel] = useState(2);
+// 1) Define available slot durations (from longest to shortest)
+const slotDurations = [
+  '01:00:00',  // 60 minutes
+  '00:50:00',  // 50 minutes
+  '00:40:00',  // 40 minutes
+  '00:30:00',  // 30 minutes
+  '00:20:00',  // 20 minutes
+  '00:15:00',  // 15 minutes
+  '00:10:00',  // 10 minutes
+  '00:05:00',  // 5 minutes
+];
+
+// 2) Your zoom state
+const [zoomLevel, setZoomLevel] = useState(3)  
+// (starting at the 4th index, e.g. 30-minute slots)
 
   const handleZoomIn = () => setZoomLevel(z => Math.min(z + 1, slotDurations.length - 1));
   const handleZoomOut = () => setZoomLevel(z => Math.max(z - 1, 0));
