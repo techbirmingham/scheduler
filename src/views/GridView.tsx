@@ -10,37 +10,36 @@ import { DateNavigator } from '../components/DateNavigator';
 import { getInitialDate } from '../utils/dates';
 
 export const GridView: React.FC = () => {
-  const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
+  const { venues, sessions, sessionTypes, selectedFilters } = useStore();
   const calendarRef = useRef<FullCalendar>(null);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getInitialDate(sessions));
   const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: string; end: string } | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);
 
-  // sync calendar with date changes
+  // Keep calendar in sync with selectedDate
   useEffect(() => {
-    const api = calendarRef.current?.getApi();
-    if (api) api.gotoDate(selectedDate);
+    calendarRef.current?.getApi().gotoDate(selectedDate);
   }, [selectedDate]);
 
-  // slot durations for zoom
+  // ── Zoom setup ──────────────────────────
   const slotDurations = [
     '01:00:00', '00:50:00', '00:40:00',
     '00:30:00', '00:20:00', '00:15:00',
     '00:10:00', '00:05:00',
   ];
-  const [zoomLevel, setZoomLevel] = useState(3); // 30m
+  const [zoomLevel, setZoomLevel] = useState(3); // start at 30m
   const currentSlotDuration = slotDurations[zoomLevel];
   const handleZoomIn  = () => setZoomLevel(z => Math.min(z+1, slotDurations.length-1));
   const handleZoomOut = () => setZoomLevel(z => Math.max(z-1, 0));
-
   useEffect(() => {
     document.body.classList.add(`zoom-${zoomLevel}`);
-    return () => { document.body.classList.remove(`zoom-${zoomLevel}`); };
+    return () => document.body.classList.remove(`zoom-${zoomLevel}`);
   }, [zoomLevel]);
 
-  // filter sessions
+  // ── Filter & map to events ─────────────────
   const filtered = sessions.filter(s => {
     if (selectedFilters.venues.length && !selectedFilters.venues.includes(s.venueId)) return false;
     if (selectedFilters.sessionTypes.length && !selectedFilters.sessionTypes.includes(s.sessionTypeId)) return false;
@@ -52,7 +51,6 @@ export const GridView: React.FC = () => {
     return true;
   });
 
-  // map to FullCalendar events
   const events = filtered
     .filter(s => s.date === selectedDate)
     .map(session => {
@@ -69,10 +67,9 @@ export const GridView: React.FC = () => {
       };
     });
 
-  // resources
   const resources = venues.map(v => ({ id: v.id, title: v.name.toUpperCase() }));
 
-  // selection handlers
+  // ── Handlers ─────────────────────────────────
   const handleDateSelect = (arg: any) => {
     const [ , start ] = arg.startStr.split('T');
     const [ , end ]   = arg.endStr.split('T');
@@ -119,38 +116,41 @@ export const GridView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* ── unified control bar ───────────────────────────── */}
-      <div className="bg-white rounded-lg shadow p-4 mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Grid View</h1>
 
+      {/* ── Row 1: Title + zoom + add ─────────────── */}
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-2xl font-semibold">Grid View</h1>
         <div className="flex items-center space-x-2">
-          <DateNavigator date={selectedDate} onDateChange={setSelectedDate} />
           <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50"
+            className="p-2 bg-gray-100 rounded disabled:opacity-50"
           >
             <ZoomOut size={16} />
           </button>
           <button
             onClick={handleZoomIn}
             disabled={zoomLevel === slotDurations.length - 1}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50"
+            className="p-2 bg-gray-100 rounded disabled:opacity-50"
           >
             <ZoomIn size={16} />
           </button>
+          <button
+            onClick={handleAddClick}
+            className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center"
+          >
+            <Plus size={16} className="mr-1" />
+            Add Session
+          </button>
         </div>
-
-        <button
-          onClick={handleAddClick}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
-        >
-          <Plus size={16} className="mr-1" />
-          Add Session
-        </button>
       </div>
 
-      {/* ── calendar pane ──────────────────────────────────── */}
+      {/* ── Row 2: Date Navigator ─────────────────── */}
+      <div className="mb-4">
+        <DateNavigator date={selectedDate} onDateChange={setSelectedDate} />
+      </div>
+
+      {/* ── Calendar ──────────────────────────────── */}
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
         <FullCalendar
           ref={calendarRef}
