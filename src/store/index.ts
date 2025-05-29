@@ -239,7 +239,7 @@ addSession: async (session) => {
     .single()
   if (!error) set(s => ({
     sessions: s.sessions.map(x => x.id === id ? data : x)
-  }))
+  })) 
 
 
 
