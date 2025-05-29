@@ -157,7 +157,19 @@ tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
 
-/* in globals.css or your Tailwind @layer components */
-.fc .fc-resource-area .fc-scrollgrid-sync-table tbody tr:last-child td {
-  border-bottom: 1px solid #e5e7eb;
+/* Target the resource-sidebar scrollgrid wrapper */
+.fc .fc-resource-area .fc-scrollgrid {
+  position: relative; /* establish a positioning context */
+}
+
+/* draw a 1px line all the way across at the bottom */
+.fc .fc-resource-area .fc-scrollgrid::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0; 
+  height: 1px;
+  background-color: #e5e7eb; /* same as Tailwind’s gray-200 */
+  pointer-events: none;      /* so it never intercepts clicks */
 }
