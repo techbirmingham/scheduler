@@ -28,11 +28,11 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   
   const handleSave = () => {
     if (editName.trim()) {
-      if (canEditColor && color) {
-        onEdit(id, editName, editColor);
-      } else {
-        onEdit(id, editName);
-      }
+      if (canEditColor) {
+  onEdit(id, editName, editColor);
+} else {
+  onEdit(id, editName);
+}
     }
     setIsEditing(false);
   };
