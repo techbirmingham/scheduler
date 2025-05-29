@@ -40,8 +40,8 @@
   text-transform: uppercase !important;
 }
 
-/* in your global CSS (or in a <style> tag) */
-.fc .fc-resource-area tr:last-child > td {
+/* in globals.css or your Tailwind @layer components */
+.fc .fc-resource-area .fc-scrollgrid-sync-table tbody tr:last-child td {
   border-bottom: 1px solid #e5e7eb;
 }
 
