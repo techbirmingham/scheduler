@@ -147,7 +147,7 @@ const closeModal = () => {
           eventResizableFromStart={true}
           resourceAreaHeaderContent="Venues"
         />
-      </div>z
+      </div>
 
       {modalOpen && (
         <SessionModal
