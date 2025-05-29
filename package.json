@@ -19,6 +19,7 @@
     "@fullcalendar/resource-timeline": "^6.1.11",
     "@fullcalendar/timegrid": "^6.1.11",
     "@supabase/supabase-js": "^2.49.8",
+    "date-fns": "^4.1.0",
     "dayjs": "^1.11.10",
     "lucide-react": "^0.344.0",
     "mapbox-gl": "^2.15.0",
