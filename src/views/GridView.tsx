@@ -79,12 +79,8 @@ const [zoomLevel, setZoomLevel] = useState(3)
   ? selectedFilters.venues
   : venues.map(v => v.id)
 
-const visibleVenueIds = selectedFilters.venues.length
-  ? selectedFilters.venues
-  : venues.map(v => v.id)
-
 const resources = venues
-  .filter(v => visibleVenueIds.includes(v.id))
+  .filter(v => visibleVenueIds.includes(v.id)) 
   .map(v => ({ id: v.id, title: v.name.toUpperCase() }));
 
   const handleDateSelect = (arg: any) => {
