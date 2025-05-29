@@ -251,15 +251,22 @@ addSession: async (session) => {
       if (!error) set(s => ({ sessions: s.sessions.filter(x => x.id !== id) }))
     },
 
-    // — Session Types —
-    addSessionType: async (st) => {
-      const { data, error } = await supabase
-        .from('sessiontypes')
-        .insert(st)
-        .select()
-        .single()
-      if (!error) set(s => ({ sessionTypes: [...s.sessionTypes, data] }))
-    },
+// … inside create<State>( … )
+addSessionType: async (newType) => {
+  // newType has shape { name: string; color?: string }
+  const { data, error } = await supabase
+    .from('sessiontypes')
+    .insert(newType)
+    .select()        // fetch the inserted row back
+    .single()
+  if (error) {
+    console.error('addSessionType failed', error)
+  } else {
+    set(state => ({
+      sessionTypes: [...state.sessionTypes, data]
+    }))
+  }
+},
 
 
 
@@ -268,16 +275,23 @@ addSession: async (session) => {
 
 
     
-    updateSession: async (id, updates) => {
+updateSessionType: async (id, updates) => {
+  // updates has shape Partial<SessionType> e.g. { name, color }
   const { data, error } = await supabase
-    .from('sessions')
+    .from('sessiontypes')
     .update(updates)
     .eq('id', id)
-    .select()
+    .select()      // fetch the updated row back
     .single()
-  if (!error) set(s => ({
-    sessions: s.sessions.map(x => x.id === id ? data : x)
-  }))
+  if (error) {
+    console.error('updateSessionType failed', error)
+  } else {
+    set(state => ({
+      sessionTypes: state.sessionTypes.map(t =>
+        t.id === id ? data : t
+      )
+    }))
+  }
 },
 
 
