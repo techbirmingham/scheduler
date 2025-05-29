@@ -124,7 +124,7 @@ export const GridView: React.FC = () => {
   const handleEventDrop = (info: any) => {
     const { event } = info;
     const sessionId = event.id;
-    const newVenueId = event.getResources()[0]?.id || ''; 
+    const newVenueId = event.getResources()[0]?.id || '';
 
     const newStartTime = event.start.toTimeString().substring(0, 5);
     const newEndTime = event.end.toTimeString().substring(0, 5);
