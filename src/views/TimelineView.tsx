@@ -188,4 +188,4 @@ export const TimelineView: React.FC = () => {
       )}
     </div>
   )
-} 
+}
