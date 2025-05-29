@@ -109,7 +109,7 @@ export const GridView: React.FC = () => {
     setModalOpen(true);
   };
   
-  // When an existing session is resized (added May 28, 2025)
+  // When an existing session is resized (added May 28, 2025)  
   const handleEventResize = async (info: EventResizeDoneArg) => {
     const e = info.event
     await updateSession(e.id, {
