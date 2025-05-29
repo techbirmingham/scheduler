@@ -56,7 +56,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   return (
     <div className="mb-4">
       <div
-        className="flex items-center justify-between mb-2 cursor-pointer"
+        className="flex items-center mb-2 cursor-pointer"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
