@@ -240,7 +240,6 @@ addSession: async (session) => {
   if (!error) set(s => ({
     sessions: s.sessions.map(x => x.id === id ? data : x)
   }))
-}
 
 
 
