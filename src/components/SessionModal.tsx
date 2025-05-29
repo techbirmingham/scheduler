@@ -16,13 +16,13 @@ interface Option { label: string; value: string }
 
 // cap tag container to ~3 lines and scroll internally
 const multiSelectStyles: StylesConfig<Option, true> = {
-  valueContainer: (base) => ({
+  valueContainer: base => ({
     ...base,
-    maxHeight: '4.5rem',      // about 3 lines of tags
+    maxHeight: '4.5rem',
     overflowY: 'auto',
     flexWrap: 'wrap',
   }),
-  multiValue: (base) => ({
+  multiValue: base => ({
     ...base,
     margin: '2px',
     padding: '0 4px',
@@ -59,7 +59,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
   const venueOpts = toOpts(venues)
   const speakerOpts = speakers.map(s => ({
-    label: `${s.name} (${s.company})`, value: s.id
+    label: `${s.name} (${s.company})`, value: s.id,
   }))
   const sessionTypeOpts = toOpts(sessionTypes)
   const trackOpts = toOpts(tracks)
@@ -89,10 +89,10 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     } else {
       setFormData(fd => ({
         ...fd,
-        startTime: initialTimeRange?.start || fd.startTime,
-        endTime:   initialTimeRange?.end   || fd.endTime,
-        venueId:   initialVenueId         || fd.venueId,
-        date:      initialDate
+        startTime: initialTimeRange?.start  || fd.startTime,
+        endTime:   initialTimeRange?.end    || fd.endTime,
+        venueId:   initialVenueId           || fd.venueId,
+        date:      initialDate,
       }))
     }
   }, [existing, initialVenueId, initialTimeRange, initialDate])
@@ -112,20 +112,18 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   }, [isOpen, onClose])
 
   const handleChange = (
-    v: React.ChangeEvent<HTMLInputElement>
-     | React.ChangeEvent<HTMLTextAreaElement>
-     | SingleValue<Option>
-     | MultiValue<Option>,
+    v:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLTextAreaElement>
+      | SingleValue<Option>
+      | MultiValue<Option>,
     field: keyof Omit<Session,'id'>
   ) => {
     if (Array.isArray(v)) {
-      // multi-select
       setFormData(fd => ({ ...fd, [field]: v.map(o => o.value) }))
     } else if ('value' in (v as any)) {
-      // single-select
       setFormData(fd => ({ ...fd, [field]: (v as SingleValue<Option>)!.value }))
     } else {
-      // text/date/time
       const tgt = v.target as HTMLInputElement
       setFormData(fd => ({ ...fd, [field]: tgt.value }))
     }
@@ -163,6 +161,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
         <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-20rem)]">
           <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
             {/* Title */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -190,6 +189,23 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 onChange={e => handleChange(e, 'description')}
                 rows={2}
                 className="w-full p-2 border border-gray-300 rounded-md"
+              />
+            </div>
+
+            {/* Speakers (full width) */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Speakers
+              </label>
+              <Select
+                options={speakerOpts}
+                isMulti
+                value={speakerOpts.filter(o =>
+                  formData.speakerIds.includes(o.value)
+                )}
+                onChange={v => handleChange(v as MultiValue<Option>, 'speakerIds')}
+                styles={multiSelectStyles}
+                className="react-select-container"
               />
             </div>
 
@@ -285,21 +301,6 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 isMulti
                 value={trackOpts.filter(o => formData.trackIds.includes(o.value))}
                 onChange={v => handleChange(v as MultiValue<Option>, 'trackIds')}
-                styles={multiSelectStyles}
-                className="react-select-container"
-              />
-            </div>
-
-            {/* Speakers (multi) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Speakers
-              </label>
-              <Select
-                options={speakerOpts}
-                isMulti
-                value={speakerOpts.filter(o => formData.speakerIds.includes(o.value))}
-                onChange={v => handleChange(v as MultiValue<Option>, 'speakerIds')}
                 styles={multiSelectStyles}
                 className="react-select-container"
               />
