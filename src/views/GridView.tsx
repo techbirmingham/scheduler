@@ -75,7 +75,7 @@ const [zoomLevel, setZoomLevel] = useState(3)
       };
     });
 
-  const visibleVenueIds = selectedFilters.venues.length 
+  const visibleVenueIds = selectedFilters.venues.length
   ? selectedFilters.venues
   : venues.map(v => v.id)
 
