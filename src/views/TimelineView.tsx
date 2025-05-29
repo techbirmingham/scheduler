@@ -166,15 +166,18 @@ const closeModal = () => {
     </div>
 
 
-// somewhere after your FullCalendar mounts
+
+
+
+    
+  ) 
+
+
+  // somewhere after your FullCalendar mounts
 document
   .querySelectorAll('.fc-datagrid-body tbody, .fc-scrollgrid-sync-table tbody')
   .forEach(tbody => {
     const lastRow = tbody.querySelector('tr:last-child td');
     if (lastRow) lastRow.style.borderBottom = '1px solid #e5e7eb';
   });
-
-
-    
-  ) 
 }
