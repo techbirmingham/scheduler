@@ -12,6 +12,8 @@ import { format } from 'date-fns'
 export const TimelineView: React.FC = () => {
   const { venues, sessions, sessionTypes, selectedFilters } = useStore()
   const calendarRef = useRef<FullCalendar>(null)
+
+  // modal + selection state
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(getInitialDate(sessions))
   const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: string; end: string } | null>(null)
@@ -19,27 +21,18 @@ export const TimelineView: React.FC = () => {
   const [editingSession, setEditingSession] = useState<string | null>(null)
 
   // ── ZOOM SETUP ───────────────────────────────────────────────────
-  const slotDurations = [
-    '00:20:00',
-    '00:15:00',
-    '00:10:00',
-    '00:05:00',
-  ]
-  const [zoomLevel, setZoomLevel] = useState(5) // start at '00:15:00'
+  const slotDurations = ['00:20:00','00:15:00','00:10:00','00:05:00']
+  const [zoomLevel, setZoomLevel] = useState(1) // start at '00:15:00'
   const currentSlot = slotDurations[zoomLevel]
+  const handleZoomIn  = () => setZoomLevel(z => Math.min(z+1, slotDurations.length-1))
+  const handleZoomOut = () => setZoomLevel(z => Math.max(z-1, 0))
 
-  const handleZoomIn = () =>
-    setZoomLevel(z => Math.min(z + 1, slotDurations.length - 1))
-  const handleZoomOut = () =>
-    setZoomLevel(z => Math.max(z - 1, 0))
-
-  // ── keep date navigator and calendar in sync ────────────────────
+  // ── keep date and calendar in sync ───────────────────────────────
   useEffect(() => {
-    const api = calendarRef.current?.getApi()
-    if (api) api.gotoDate(selectedDate)
+    calendarRef.current?.getApi().gotoDate(selectedDate)
   }, [selectedDate])
 
-  // ── filters, events, resources ─────────────────────────────────
+  // ── filter & map to events ──────────────────────────────────────
   const filtered = sessions.filter(s => {
     if (selectedFilters.venues.length && !selectedFilters.venues.includes(s.venueId)) return false
     if (selectedFilters.sessionTypes.length && !selectedFilters.sessionTypes.includes(s.sessionTypeId)) return false
@@ -67,12 +60,9 @@ export const TimelineView: React.FC = () => {
       }
     })
 
-  const resources = venues.map(v => ({
-    id: v.id,
-    title: v.name
-  }))
+  const resources = venues.map(v => ({ id: v.id, title: v.name }))
 
-  // ── modal controls ─────────────────────────────────────────────
+  // ── handlers ────────────────────────────────────────────────────
   const handleAddClick = () => {
     setEditingSession(null)
     setSelectedTimeRange(null)
@@ -80,15 +70,12 @@ export const TimelineView: React.FC = () => {
     setModalOpen(true)
   }
   const closeModal = () => {
-    const api = calendarRef.current?.getApi()
-    if (api) api.unselect()
+    calendarRef.current?.getApi().unselect()
     setModalOpen(false)
     setEditingSession(null)
     setSelectedTimeRange(null)
     setSelectedVenue(null)
   }
-
-  // ── drag & resize & click ───────────────────────────────────────
   const handleEventDrop = (info: any) => {
     const ev = info.event, id = ev.id
     const newVenue = ev.getResources()[0]?.id || ''
@@ -117,36 +104,35 @@ export const TimelineView: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* header + Zoom buttons */}
-      <div className="flex justify-between items-center mb-4">
+
+      {/* ── Row 1: title + zoom + add */}
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-semibold">Timeline View</h1>
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleZoomOut}
-            disabled={zoomLevel === 0}
-            className="p-2 bg-gray-100 rounded disabled:opacity-50"
-          >
+          <button onClick={handleZoomOut}
+                  disabled={zoomLevel===0}
+                  className="p-2 bg-gray-100 rounded disabled:opacity-50">
             <ZoomOut size={16}/>
           </button>
-          <button
-            onClick={handleZoomIn}
-            disabled={zoomLevel === slotDurations.length - 1}
-            className="p-2 bg-gray-100 rounded disabled:opacity-50"
-          >
+          <button onClick={handleZoomIn}
+                  disabled={zoomLevel===slotDurations.length-1}
+                  className="p-2 bg-gray-100 rounded disabled:opacity-50">
             <ZoomIn size={16}/>
           </button>
-          <button
-            onClick={handleAddClick}
-            className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center"
-          >
+          <button onClick={handleAddClick}
+                  className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center">
             <Plus size={16} className="mr-1"/> Add Session
           </button>
         </div>
       </div>
 
-      <DateNavigator date={selectedDate} onDateChange={setSelectedDate}/>
+      {/* ── Row 2: date navigator */}
+      <div className="mb-4">
+        <DateNavigator date={selectedDate} onDateChange={setSelectedDate}/>
+      </div>
 
-      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden mt-4">
+      {/* ── calendar */}
+      <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
         <FullCalendar
           ref={calendarRef}
           plugins={[resourceTimelinePlugin, interactionPlugin]}
@@ -155,11 +141,8 @@ export const TimelineView: React.FC = () => {
           headerToolbar={false}
           slotMinTime="06:00:00"
           slotMaxTime="22:00:00"
-
-          // ← use current zoom slot duration here:
           slotDuration={currentSlot}
           snapDuration={currentSlot}
-
           height="100%"
           events={events}
           resources={resources}
