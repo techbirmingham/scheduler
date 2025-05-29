@@ -186,4 +186,4 @@ const closeModal = () => {
       )}
     </div>
   );
-}; 
+};
