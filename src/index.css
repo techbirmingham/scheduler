@@ -40,11 +40,6 @@
   text-transform: uppercase !important;
 }
 
-/* in globals.css or your Tailwind @layer components */
-.fc .fc-resource-area .fc-scrollgrid-sync-table tbody tr:last-child td {
-  border-bottom: 1px solid #e5e7eb;
-}
-
 /* Zoom-specific font tweaks */
 body.zoom-0 .fc-timegrid-slot-label,
 body.zoom-0 .fc-col-header-cell {
@@ -160,4 +155,9 @@ tr.cursor-pointer {
 
 tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* in globals.css or your Tailwind @layer components */
+.fc .fc-resource-area .fc-scrollgrid-sync-table tbody tr:last-child td {
+  border-bottom: 1px solid #e5e7eb;
 }
