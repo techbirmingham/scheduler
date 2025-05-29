@@ -229,7 +229,7 @@ addSession: async (session) => {
 
 
 
-    
+    // added to allow for resizing
     updateSession: async (id, updates) => {
   const { data, error } = await supabase
     .from('sessions')
