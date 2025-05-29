@@ -121,13 +121,14 @@ export const GridView: React.FC = () => {
   }
 
   // When a session is moved to another time or venue
-  const handleEventDrop = (info: any) => {
-    const { event } = info;
-    const sessionId = event.id;
-    const newVenueId = event.getResources()[0]?.id || '';
-
-    const newStartTime = event.start.toTimeString().substring(0, 5);
-    const newEndTime = event.end.toTimeString().substring(0, 5);
+  const handleEventDrop = async (info: EventDropArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
 
     useStore.getState().updateSession(sessionId, {
       venueId: newVenueId,
