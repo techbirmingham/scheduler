@@ -79,10 +79,10 @@ const [zoomLevel, setZoomLevel] = useState(3)
   ? selectedFilters.venues
   : venues.map(v => v.id)
 
-const { venues, selectedFilters } = useStore()
+// after:
 const visibleVenueIds = selectedFilters.venues.length
   ? selectedFilters.venues
-  : venues.map(v => v.id)        // if none checked, show all
+  : venues.map(v => v.id)
 
 const resources = venues
   .filter(v => visibleVenueIds.includes(v.id))
