@@ -166,7 +166,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-16rem)]">
-          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Title */}
             <div className="md:col-span-2">
@@ -193,7 +193,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 name="description"
                 value={formData.description}
                 onChange={e => handleChange(e, 'description')}
-                rows={2}
+                rows={1}
                 className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
