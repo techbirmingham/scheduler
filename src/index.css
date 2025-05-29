@@ -156,3 +156,8 @@ tr.cursor-pointer {
 tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
+@layer components {
+  .fc .fc-resource-area tr:last-child > td {
+    @apply border-b border-gray-200;
+  }
+}
