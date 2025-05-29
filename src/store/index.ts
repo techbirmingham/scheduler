@@ -260,15 +260,32 @@ addSession: async (session) => {
         .single()
       if (!error) set(s => ({ sessionTypes: [...s.sessionTypes, data] }))
     },
-    updateSessionType: async (id, updates) => {
-      const { data, error } = await supabase
-        .from('sessiontypes')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single()
-      if (!error) set(s => ({ sessionTypes: s.sessionTypes.map(x => x.id === id ? data : x) }))
-    },
+
+
+
+
+
+
+
+    
+    updateSession: async (id, updates) => {
+  const { data, error } = await supabase
+    .from('sessions')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  if (!error) set(s => ({
+    sessions: s.sessions.map(x => x.id === id ? data : x)
+  }))
+},
+
+
+
+
+
+
+    
     deleteSessionType: async (id) => {
       const { error } = await supabase.from('sessiontypes').delete().eq('id', id)
       if (!error) set(s => ({
