@@ -73,7 +73,7 @@ export const TimelineView: React.FC = () => {
 
 const resources = venues
   .filter(v => visibleVenueIds.includes(v.id))
-  .map(v => ({ id: v.id, title: v.name.toUpperCase() }))
+  .map(v => ({ id: v.id, title: v.name }))
 
   // ── modal controls ─────────────────────────────────────────────
   const handleAddClick = () => {
