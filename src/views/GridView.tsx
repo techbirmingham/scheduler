@@ -210,7 +210,7 @@ export const GridView: React.FC = () => {
             hour12: true,
             meridiem: 'short'
           }]}
-        /> 
+        />
       </div>
 
       {/* Conditionally render session modal */}
