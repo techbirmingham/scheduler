@@ -161,8 +161,3 @@ tr.cursor-pointer:hover {
 .fc .fc-timeline-body .fc-timeline-lane-frame {
   border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
 } 
-
-/* Timeline-view: ensure the last venue row has a bottom border */
-.fc .fc-scrollgrid-sync-table tbody tr:last-child td.fc-datagrid-cell.fc-resource {
-  border-bottom: 5px solid #e5e7eb !important;
-}
