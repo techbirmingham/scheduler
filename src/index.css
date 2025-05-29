@@ -157,9 +157,14 @@ tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
 
-/* add bottom borders to the venue column cells */
+/* — Grid‐View (resource‐timegrid) uses a “datagrid” for the left column: */
 .fc .fc-datagrid-body td.fc-datagrid-cell.fc-resource {
   border-bottom: 1px solid #e5e7eb; /* Tailwind gray-200 */
+}
+
+/* — Timeline‐View (resource-timeline) uses a “scrollgrid” for the left column: */
+.fc .fc-scrollgrid-sync-table td.fc-datagrid-cell.fc-resource {
+  border-bottom: 1px solid #e5e7eb;
 }
 
 /* give every timeline lane a bottom border */
