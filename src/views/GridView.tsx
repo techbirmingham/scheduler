@@ -108,6 +108,17 @@ export const GridView: React.FC = () => {
     setEditingSession(info.event.id);
     setModalOpen(true);
   };
+  
+  // When an existing session is resized (added May 28, 2025)
+  const handleEventResize = async (info: EventResizeDoneArg) => {
+    const e = info.event
+    await updateSession(e.id, {
+      // format dates/times to what your DB expects
+      date:        format(e.start!, 'yyyy-MM-dd'),
+      startTime:   format(e.start!, 'HH:mm'),
+      endTime:     format(e.end!,   'HH:mm'),
+    })
+  }
 
   // When a session is moved to another time or venue
   const handleEventDrop = (info: any) => {
