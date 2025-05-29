@@ -70,7 +70,7 @@ const resources = venues
     const [ , startTime ] = arg.startStr.split('T')
     const [ , endTime ]   = arg.endStr.split('T')
     setSelectedTimeRange({ start: startTime.slice(0,5), end: endTime.slice(0,5) })
-    setSelectedVenue(venueId)
+    setSelectedVenue(venueId) 
     setEditingSession(null)
     setModalOpen(true)
   }
