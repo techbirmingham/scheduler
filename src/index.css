@@ -40,6 +40,11 @@
   text-transform: uppercase !important;
 }
 
+/* in your global CSS (or in a <style> tag) */
+.fc .fc-resource-area tr:last-child > td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
 /* Zoom-specific font tweaks */
 body.zoom-0 .fc-timegrid-slot-label,
 body.zoom-0 .fc-col-header-cell {
