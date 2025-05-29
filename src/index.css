@@ -156,20 +156,7 @@ tr.cursor-pointer {
 tr.cursor-pointer:hover {
   background-color: rgba(99, 102, 241, 0.05);
 }
-
-/* Target the resource-sidebar scrollgrid wrapper */
-.fc .fc-resource-area .fc-scrollgrid {
-  position: relative; /* establish a positioning context */
-}
-
-/* draw a 1px line all the way across at the bottom */
-.fc .fc-resource-area .fc-scrollgrid::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0; 
-  height: 1px;
-  background-color: #e5e7eb; /* same as Tailwind’s gray-200 */
-  pointer-events: none;      /* so it never intercepts clicks */
+/* give every timeline lane a bottom border */
+.fc .fc-timeline-body .fc-timeline-lane-frame {
+  border-bottom: 1px solid #e5e7eb; /* Tailwind’s gray-200 */
 }
