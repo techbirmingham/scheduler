@@ -14,7 +14,7 @@ import netlifyIdentity from 'netlify-identity-widget';
 
 // Initialize Netlify Identity
 netlifyIdentity.init({
-  APIUrl: 'https://<your-netlify-subdomain>/.netlify/identity'
+  APIUrl: 'https://tb-scheduler/.netlify/identity'
 });
 // end built-in modal UI
 
