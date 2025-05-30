@@ -165,3 +165,6 @@ tr.cursor-pointer:hover {
 .fc .fc-datagrid-cell-frame:last-child {
   border-bottom: 1px solid #e5e7eb;
 }
+.fc-license-message {
+  display: none !important;
+}
