@@ -1,61 +1,64 @@
 // src/components/AuthGate.tsx
-import React, { useState, useEffect } from 'react'
-import netlifyIdentity from 'netlify-identity-widget'
+import React, { ReactNode, useState, useEffect } from 'react'
+import { supabase } from '../utils/supabaseClient'
 
-export const AuthGate: React.FC = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    netlifyIdentity.init({
-      APIUrl: 'https://tb-scheduler.netlify.app/.netlify/identity',
-    })
-    return !!netlifyIdentity.currentUser()
-  })
+interface AuthGateProps {
+  children: ReactNode
+}
+
+export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
+  const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
-    // When login succeeds:
-    const onLogin = () => {
-      setIsLoggedIn(true)
-      document.body.style.overflow = ''     // restore scrolling
-      netlifyIdentity.close()               // hide the Netlify modal
-    }
-    // When logout happens:
-    const onLogout = () => {
-      setIsLoggedIn(false)
-      // we could re-hide scroll here if we’d explicitly hidden it on mount
-    }
+    // 1) fetch the initial session
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+    })
 
-    netlifyIdentity.on('login', onLogin)
-    netlifyIdentity.on('logout', onLogout)
+    // 2) subscribe to any future changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+      }
+    )
 
     return () => {
-      netlifyIdentity.off('login', onLogin)
-      netlifyIdentity.off('logout', onLogout)
+      subscription.unsubscribe()
     }
   }, [])
 
-  if (isLoggedIn) {
-    // once you’re logged in, just render your app
-    return <>{children}</>
-  }
+  // 3) if we have a session, render the app
+  if (session) return <>{children}</>
 
-  // otherwise, block everything behind a translucent overlay
+  // 4) otherwise block + show “Log In with Google”
   return (
     <div
-      className="fixed inset-0 z-50 bg-white bg-opacity-75 flex items-center justify-center"
-      onClick={() => netlifyIdentity.open()}
-      style={{ cursor: 'pointer' }}
+      onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        backgroundColor: 'rgba(255,255,255,0.75)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer'
+      }}
     >
       <div
-        className="text-center space-y-4 p-6 bg-white rounded shadow-lg"
         onClick={e => e.stopPropagation()}
+        className="bg-white p-6 rounded-lg shadow-lg text-center"
       >
-        <h2 className="text-xl font-semibold text-gray-800">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
           Please log in to continue
         </h2>
         <button
-          onClick={() => netlifyIdentity.open()}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+          onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+          className="px-5 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
         >
-          Log In
+          Log In with Google
         </button>
       </div>
     </div>

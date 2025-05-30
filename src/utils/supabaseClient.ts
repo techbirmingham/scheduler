@@ -1,6 +1,25 @@
-import { createClient } from '@supabase/supabase-js'
+// src/utils/supabaseClient.ts
 
-export const supabase = createClient(
-  'https://bkznhbnzbmrcooswxtyg.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrem5oYm56Ym1yY29vc3d4dHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MDM2MzUsImV4cCI6MjA2Mzk3OTYzNX0.20OzY99VuknsbX4j39R1QC2ExPQV8RC3UZI4h-ellwE'
+console.log('⚡️ import.meta.env:', import.meta.env);
+
+console.log(
+  '⚡ MODE / DEV:',
+  import.meta.env.MODE,
+  import.meta.env.DEV
 )
+console.log(
+  '⚡ SUPABASE URL / ANON KEY:',
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// these MUST not be undefined or empty
+if (!supabaseUrl)  throw new Error('VITE_SUPABASE_URL is required');
+if (!supabaseKey)  throw new Error('VITE_SUPABASE_ANON_KEY is required');
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
