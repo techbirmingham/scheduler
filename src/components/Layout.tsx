@@ -10,6 +10,10 @@ import { Sidebar } from './Sidebar'
 function AuthControls() {
   const [user, setUser] = useState(netlifyIdentity.currentUser())
 
+  setIsLoggedIn(!!user);
+  if (user) {
+    document.body.style.overflow = ''; // restores scroll
+
   useEffect(() => {
     netlifyIdentity.init()
     netlifyIdentity.on('login', u => setUser(u))
