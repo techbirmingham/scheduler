@@ -7,19 +7,24 @@ import { ListView } from './views/ListView';
 import { MapView } from './views/MapView';
 import { SpeakersView } from './views/SpeakersView';
 import { SettingsView } from './views/SettingsView';
+import { AuthGate } from './components/AuthGate'; // 👈 Import the auth overlay
 
 // start built-in modal UI you can open with netlifyIdentity.open()
 import netlifyIdentity from 'netlify-identity-widget';
 
-// when your app boots:
+// Initialize Netlify Identity
 netlifyIdentity.init({
   APIUrl: 'https://<your-netlify-subdomain>/.netlify/identity'
 });
-// end built-in modal UI you can open with netlifyIdentity.open()
+// end built-in modal UI
 
 function App() {
   return (
     <Router>
+      {/* 👇 Blocks access unless user is logged in */}
+      <AuthGate />
+
+      {/* 👇 Your app still loads underneath, but gets blocked by overlay */}
       <Layout>
         <Routes>
           <Route path="/" element={<GridView />} />
