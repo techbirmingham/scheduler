@@ -5,7 +5,7 @@ import netlifyIdentity from 'netlify-identity-widget'
 export const AuthGate: React.FC = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     netlifyIdentity.init({
-      APIUrl: 'https://tb-scheduler/.netlify/identity',
+      APIUrl: 'https://tb-scheduler.app/.netlify/identity',
     })
     return !!netlifyIdentity.currentUser()
   })
