@@ -8,7 +8,7 @@ import { Sidebar } from './Sidebar'
 
 // A little component to show “Log in” / “Log out”
 function AuthControls() {
-  const [user, setUser] = useState(netlifyIdentity.currentUser()) 
+  const [user, setUser] = useState(netlifyIdentity.currentUser())
 
   useEffect(() => {
     netlifyIdentity.init()
