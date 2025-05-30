@@ -14,7 +14,7 @@ import { SettingsView } from './views/SettingsView'
 
 // Initialize Netlify Identity (point APIUrl at your site)
 netlifyIdentity.init({
-  APIUrl: 'https://tb-scheduler.netlify.app/.netlify/identity'
+  APIUrl: 'https://tb-scheduler/.netlify/identity'
 })
 
 function App() {
