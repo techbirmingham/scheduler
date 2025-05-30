@@ -8,11 +8,7 @@ import { Sidebar } from './Sidebar'
 
 // A little component to show “Log in” / “Log out”
 function AuthControls() {
-  const [user, setUser] = useState(netlifyIdentity.currentUser())
-
-  setIsLoggedIn(!!user);
-  if (user) {
-    document.body.style.overflow = ''; // restores scroll
+  const [user, setUser] = useState(netlifyIdentity.currentUser()) 
 
   useEffect(() => {
     netlifyIdentity.init()
