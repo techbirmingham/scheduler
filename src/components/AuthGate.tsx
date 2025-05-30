@@ -17,7 +17,7 @@ export const AuthGate: React.FC = () => {
   if (user) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-white bg-opacity-80 backdrop-blur-sm flex items-center justify-center">
+    <div className="fixed inset-0 z-50 bg-white bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg shadow-lg text-center">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">
           You must be logged in to use this app
