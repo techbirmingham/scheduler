@@ -30,7 +30,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
         </header>
         <main className="flex-1 overflow-auto bg-gray-50 p-4">
-          {children}
+          {children} 
         </main>
       </div>
     </div>
