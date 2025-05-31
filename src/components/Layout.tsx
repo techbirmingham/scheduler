@@ -1,38 +1,134 @@
 // src/components/Layout.tsx
+
 import React, { useState, useEffect } from 'react'
+
 import { NavLink, useLocation } from 'react-router-dom'
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
-import { supabase } from '../utils/supabaseClient'
 import { Sidebar } from './Sidebar'
 
-export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+
+
+
+}
+
+interface LayoutProps {
+  children: React.ReactNode
+}
+
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const loc = useLocation()
-  const hideSidebar = ['/map','/speakers','/settings'].includes(loc.pathname)
+  const location = useLocation()
+
+  const isMapView      = location.pathname === '/map'
+  const isSpeakersView = location.pathname === '/speakers'
+  const isSettingsView = location.pathname === '/settings'
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {!hideSidebar && (
+      {!isMapView && !isSpeakersView && !isSettingsView && (
         <Sidebar
           isOpen={sidebarOpen}
-          toggleSidebar={() => setSidebarOpen(open => !open)}
+          toggleSidebar={() => setSidebarOpen(o => !o)}
         />
       )}
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <header className="bg-white shadow z-10">
           <div className="px-4 py-3 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">Scheduler</h1>
-            <nav className="flex items-center space-x-2">
-              {/* … your NavLinks … */}
-               
+            <h1 className="text-xl font-semibold text-gray-800">
+              Scheduler
+            </h1>
+            <nav className="flex items-center space-x-1">
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Calendar size={16} />
+                <span>Grid</span>
+              </NavLink>
+              <NavLink
+                to="/timeline"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Clock size={16} />
+                <span>Timeline</span>
+              </NavLink>
+              <NavLink
+                to="/list"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <List size={16} />
+                <span>List</span>
+              </NavLink>
+              <NavLink
+                to="/map"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Map size={16} />
+                <span>Map</span>
+              </NavLink>
+              <NavLink
+                to="/speakers"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Users size={16} />
+                <span>Speakers</span>
+              </NavLink>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Settings size={16} />
+                <span>Settings</span>
+              </NavLink>
+
+              {/* <-- here’s our login/logout button */}
+              <AuthControls />
             </nav>
           </div>
         </header>
+
         <main className="flex-1 overflow-auto bg-gray-50 p-4">
-          {children} 
+          {children}
         </main>
       </div>
     </div>
   )
-} 
+}
