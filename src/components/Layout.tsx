@@ -9,7 +9,22 @@ import { Sidebar } from './Sidebar'
 
 
 
- 
+  return user ? (
+    <button
+      onClick={() => netlifyIdentity.logout()}
+      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+    >
+      Log out
+    </button>
+  ) : (
+    <button
+      onClick={() => netlifyIdentity.open()}
+      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
+    >
+      Log in
+    </button>
+  )
+}
 
 interface LayoutProps {
   children: React.ReactNode
@@ -119,8 +134,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span>Settings</span>
               </NavLink>
 
-              {/* <-- here’s our login/logout button */}
-              <AuthControls />
+              
+              
             </nav>
           </div>
         </header>
