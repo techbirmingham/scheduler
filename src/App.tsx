@@ -2,7 +2,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthGate }      from './components/AuthGate'
-import { Layout }        from './components/Layout'
+import { Layout }        from './components/Layout' 
 import { GridView }      from './views/GridView'
 import { TimelineView }  from './views/TimelineView'
 import { ListView }      from './views/ListView'
