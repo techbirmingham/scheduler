@@ -12,7 +12,7 @@ import { SettingsView }  from './views/SettingsView'
 function App() {
   return (
     <Router>
-      <AuthGate>
+      
         <Layout>
           <Routes>
             <Route path="/"         element={<GridView />}     />
@@ -23,7 +23,7 @@ function App() {
             <Route path="/settings" element={<SettingsView />}  />
           </Routes>
         </Layout>
-      </AuthGate>
+      
     </Router> 
   )
 }
