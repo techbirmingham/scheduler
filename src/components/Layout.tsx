@@ -25,7 +25,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <h1 className="text-xl font-semibold text-gray-800">Scheduler</h1>
             <nav className="flex items-center space-x-2">
               {/* … your NavLinks … */}
-              
+               
             </nav>
           </div>
         </header>
