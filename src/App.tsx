@@ -10,7 +10,7 @@ netlifyIdentity.init({
 
 // import { AuthGate }     from './components/AuthGate'
 import { Layout }       from './components/Layout'
-import { GridView }     from './views/GridView'
+import { GridView }     from './views/GridView' 
 import { TimelineView } from './views/TimelineView'
 import { ListView }     from './views/ListView'
 import { MapView }      from './views/MapView'
