@@ -133,7 +133,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </NavLink>
               <NavLink
                 to="/settings"
-                className={({ isActive }) => 
+                className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
                     isActive
                       ? 'bg-indigo-100 text-indigo-700'
