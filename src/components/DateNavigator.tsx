@@ -20,7 +20,7 @@ interface DateNavigatorProps {
 export const DateNavigator: React.FC<DateNavigatorProps> = ({ 
   date, 
   onDateChange,
-  minDate = '2025-06-25',
+  minDate = '2025-06-22',
   maxDate = '2025-06-27'
 }) => {
   // Navigate back one day (only if still within minDate range)
