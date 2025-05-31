@@ -5,40 +5,6 @@ import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
 import { supabase } from '../utils/supabaseClient'
 import { Sidebar } from './Sidebar'
 
-function AuthControls() {
-  const [session, setSession] = useState<any>(null)
-
-  useEffect(() => {
-    // initial fetch
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    // subscribe
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setSession(session)
-    )
-    return () => subscription.unsubscribe()
-  }, [])
-
-  if (session) {
-    return (
-      <button
-        onClick={() => supabase.auth.signOut()}
-        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
-      >
-        Log out
-      </button>
-    )
-  } else {
-    return (
-      <button
-        onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-        className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800"
-      >
-        Log in
-      </button>
-    )
-  }
-}
-
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const loc = useLocation()
