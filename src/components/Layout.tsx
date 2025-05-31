@@ -1,7 +1,7 @@
 // src/components/Layout.tsx
 
 import React, { useState, useEffect } from 'react'
-import netlifyIdentity from 'netlify-identity-widget'
+
 import { NavLink, useLocation } from 'react-router-dom'
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
