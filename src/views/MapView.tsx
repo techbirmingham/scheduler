@@ -31,7 +31,7 @@ export const MapView: React.FC = () => {
   // Initialize map
   useEffect(() => {
     if (!mapLoaded && mapContainerRef.current) {
-      mapboxgl.accessToken = 'pk.eyJ1IjoidGVjaGJpcm1pbmdoYW0iLCJhIjoiY21iNnhrNTF1MDJwZjJxb2J5OWoxbmpnOCJ9.SDvpSjfRtSSVvMorW3Il3A';
+      mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
       
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,

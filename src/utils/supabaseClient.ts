@@ -1,6 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-export const supabase = createClient(
-'https://bkznhbnzbmrcooswxtyg.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrem5oYm56Ym1yY29vc3d4dHlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0MDM2MzUsImV4cCI6MjA2Mzk3OTYzNX0.20OzY99VuknsbX4j39R1QC2ExPQV8RC3UZI4h-ellwE'
-)
+// Credentials come from environment variables (see .env.example).
+// Vite only exposes variables prefixed with VITE_ to the browser.
+// The anon key is safe to ship to the client *only* because Row Level
+// Security is enabled on every table (see supabase/schema.sql).
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase environment variables. Copy .env.example to .env ' +
+      'and fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

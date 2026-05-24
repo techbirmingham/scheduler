@@ -9,7 +9,7 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     return CACHE[address];
   }
 
-  const token = 'pk.eyJ1IjoidGVjaGJpcm1pbmdoYW0iLCJhIjoiY21iNnhrNTF1MDJwZjJxb2J5OWoxbmpnOCJ9.SDvpSjfRtSSVvMorW3Il3A';
+  const token = import.meta.env.VITE_MAPBOX_TOKEN;
   const url =
     'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
     encodeURIComponent(address) +
