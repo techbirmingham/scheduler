@@ -13,6 +13,7 @@ type GateState =
   | { status: 'checking' }
   | { status: 'authorized' }
   | { status: 'unauthorized'; email: string }
+  | { status: 'error'; message: string }
 
 export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
   const [state, setState] = useState<GateState>({ status: 'loading' })
@@ -36,17 +37,32 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         return
       }
       setState({ status: 'checking' })
-      const { data } = await supabase
-        .from('team_members')
-        .select('id')
-        .ilike('email', email)
-        .maybeSingle()
-      if (cancelled) return
-      if (data) {
-        setState({ status: 'authorized' })
-      } else {
-        await supabase.auth.signOut()
-        if (!cancelled) setState({ status: 'unauthorized', email })
+      try {
+        const { data, error } = await supabase
+          .from('team_members')
+          .select('id')
+          .ilike('email', email)
+          .maybeSingle()
+        if (cancelled) return
+        if (error) {
+          console.error('AuthGate: team_members lookup errored', error)
+          setState({ status: 'error', message: error.message })
+          return
+        }
+        if (data) {
+          setState({ status: 'authorized' })
+        } else {
+          await supabase.auth.signOut()
+          if (!cancelled) setState({ status: 'unauthorized', email })
+        }
+      } catch (err) {
+        console.error('AuthGate: team_members lookup threw', err)
+        if (!cancelled) {
+          setState({
+            status: 'error',
+            message: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
     }
 
@@ -117,6 +133,24 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
               className="px-5 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
             >
               Sign in with a different Google account
+            </button>
+          </>
+        )}
+
+        {state.status === 'error' && (
+          <>
+            <h2 className="text-xl font-semibold text-gray-800 mb-3">
+              Sign-in problem
+            </h2>
+            <p className="text-gray-600 mb-1">Couldn't verify access:</p>
+            <p className="text-gray-800 mb-4 font-mono text-sm break-words">
+              {state.message}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+            >
+              Reload
             </button>
           </>
         )}
