@@ -38,11 +38,17 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       }
       setState({ status: 'checking' })
       try {
-        const { data, error } = await supabase
+        // Race against a timeout so a hung Supabase request surfaces
+        // as a visible error instead of an infinite "Verifying…" spinner.
+        const queryPromise = supabase
           .from('team_members')
           .select('id')
           .ilike('email', email)
           .maybeSingle()
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('team_members lookup timed out after 10s')), 10_000),
+        )
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise])
         if (cancelled) return
         if (error) {
           console.error('AuthGate: team_members lookup errored', error)
@@ -102,7 +108,18 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         )}
 
         {state.status === 'checking' && (
-          <p className="text-gray-700">Verifying access…</p>
+          <>
+            <p className="text-gray-700 mb-4">Verifying access…</p>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut()
+                window.location.reload()
+              }}
+              className="px-4 py-1 text-sm text-gray-600 underline"
+            >
+              Stuck? Sign out and try again
+            </button>
+          </>
         )}
 
         {state.status === 'signed-out' && (
