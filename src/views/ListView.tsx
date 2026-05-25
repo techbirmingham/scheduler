@@ -6,7 +6,8 @@ import { SessionModal } from '../components/SessionModal';
 import { getInitialDate } from '../utils/dates';
 
 export const ListView: React.FC = () => {
-  const { sessions, venues, speakers, sessionTypes, tracks, selectedFilters, deleteSession } = useStore();
+  const { sessions, venues, speakers, sessionTypes, tracks, selectedFilters, deleteSession, events, currentEventId } = useStore();
+  const currentEvent = events.find(e => e.id === currentEventId);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<string | null>(null);
@@ -238,7 +239,7 @@ export const ListView: React.FC = () => {
           sessionId={editingSession}
           initialVenueId={null}
           initialTimeRange={null}
-          initialDate={sortedDates[0] || getInitialDate(sessions)}
+          initialDate={sortedDates[0] || getInitialDate(sessions, currentEvent?.startDate)}
         />
       )}
     </div>

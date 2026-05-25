@@ -11,9 +11,10 @@ import { getInitialDate } from '../utils/dates';
 
 export const GridView: React.FC = () => {
   const { venues, sessions, sessionTypes, speakers, tracks, selectedFilters } = useStore();
+  const currentEvent = useStore(s => s.events.find(e => e.id === s.currentEventId));
   const calendarRef = useRef<FullCalendar>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(getInitialDate(sessions));
+  const [selectedDate, setSelectedDate] = useState(getInitialDate(sessions, currentEvent?.startDate));
   const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: string; end: string } | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);

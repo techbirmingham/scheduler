@@ -1,17 +1,18 @@
 import { Session } from '../store';
 
-export const getInitialDate = (sessions: Session[]): string => {
-  // Default conference start date
-  const conferenceStartDate = '2025-06-25';
-  
-  // If there are no sessions, return the conference start date
+// Returns the earliest session date if any sessions exist; otherwise
+// returns the supplied fallback (typically the current event's
+// startDate). Falls back to today only as a last resort so callers
+// don't have to guard against undefined.
+export const getInitialDate = (sessions: Session[], fallback?: string): string => {
+  const safeFallback = fallback ?? new Date().toISOString().slice(0, 10);
+
   if (sessions.length === 0) {
-    return conferenceStartDate;
+    return safeFallback;
   }
 
-  // Find the earliest date from all sessions
-  return sessions.reduce((earliest, session) => 
-    session.date < earliest ? session.date : earliest, 
-    sessions[0].date
+  return sessions.reduce(
+    (earliest, session) => (session.date < earliest ? session.date : earliest),
+    sessions[0].date,
   );
 };

@@ -26,7 +26,8 @@ export const MapView: React.FC = () => {
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   
-  const { venues, sessions, sessionTypes, speakers, addVenue, updateVenue, deleteVenue } = useStore();
+  const { venues, sessions, sessionTypes, speakers, addVenue, updateVenue, deleteVenue, events, currentEventId } = useStore();
+  const currentEvent = events.find(e => e.id === currentEventId);
 
   // Initialize map
   useEffect(() => {
@@ -396,7 +397,7 @@ export const MapView: React.FC = () => {
           sessionId={editingSession}
           initialVenueId={selectedVenue}
           initialTimeRange={null}
-          initialDate={getInitialDate(sessions)}
+          initialDate={getInitialDate(sessions, currentEvent?.startDate)}
         />
       )}
 
