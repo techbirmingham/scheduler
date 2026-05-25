@@ -5,10 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 5176,
-    hmr: {
-      clientPort: 443
-    }
+    port: 5173,
+    strictPort: true,
   },
   optimizeDeps: {
     include: [
