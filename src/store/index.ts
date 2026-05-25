@@ -137,7 +137,24 @@ export const useStore = create<State>((set, get) => {
       accessLevels:  accesslevels ?? [],
     })
   }
-  loadAll()
+
+  function clearAll() {
+    set({
+      events: [], currentEventId: null,
+      speakers: [], venues: [], sessions: [], sessionTypes: [], tracks: [],
+      organizations: [], programs: [], experiences: [], accessLevels: [],
+    })
+  }
+
+  // Drive (re)loads from auth state rather than module init: pre-auth
+  // fetches would hit RLS and silently return nothing, so without this
+  // the store would stay empty even after sign-in. INITIAL_SESSION
+  // fires immediately on subscription, so this handles both first
+  // load and subsequent sign-in/out.
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session) loadAll()
+    else clearAll()
+  })
 
   return {
     events: [],

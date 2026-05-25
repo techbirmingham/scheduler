@@ -1,6 +1,7 @@
 // src/App.tsx
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { AuthGate }      from './components/AuthGate'
 import { Layout }        from './components/Layout'
 import { GridView }      from './views/GridView'
 import { TimelineView }  from './views/TimelineView'
@@ -11,8 +12,8 @@ import { SettingsView }  from './views/SettingsView'
 
 function App() {
   return (
-    <Router>
-      
+    <AuthGate>
+      <Router>
         <Layout>
           <Routes>
             <Route path="/"         element={<GridView />}     />
@@ -20,12 +21,12 @@ function App() {
             <Route path="/list"     element={<ListView />}     />
             <Route path="/map"      element={<MapView />}      />
             <Route path="/speakers" element={<SpeakersView />} />
-            <Route path="/settings" element={<SettingsView />}  />
+            <Route path="/settings" element={<SettingsView />} />
           </Routes>
         </Layout>
-      
-    </Router> 
+      </Router>
+    </AuthGate>
   )
 }
- 
+
 export default App
