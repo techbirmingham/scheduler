@@ -72,10 +72,28 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
       }
     }
 
-    supabase.auth.getSession().then(({ data }) => verify(data.session))
+    // Supabase parses the OAuth access_token from the URL hash on init
+    // but leaves the bare '#' behind. Clean it up.
+    function tidyOAuthHash() {
+      if (window.location.hash) {
+        window.history.replaceState(
+          null,
+          '',
+          window.location.pathname + window.location.search,
+        )
+      }
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      tidyOAuthHash()
+      verify(data.session)
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => verify(session),
+      (_event, session) => {
+        tidyOAuthHash()
+        verify(session)
+      },
     )
 
     return () => {
@@ -111,8 +129,13 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
           <>
             <p className="text-gray-700 mb-4">Verifying access…</p>
             <button
-              onClick={async () => {
-                await supabase.auth.signOut()
+              onClick={() => {
+                // Fire-and-forget so a hung Supabase doesn't block recovery.
+                // Manually purge cached session keys; next load sees no session.
+                supabase.auth.signOut().catch(() => {})
+                Object.keys(localStorage)
+                  .filter((k) => k.startsWith('sb-'))
+                  .forEach((k) => localStorage.removeItem(k))
                 window.location.reload()
               }}
               className="px-4 py-1 text-sm text-gray-600 underline"
