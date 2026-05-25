@@ -2,6 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react';
 import { useStore, Speaker } from '../store';
 
+// Renders a speaker's photo if one exists, otherwise a CSS-generated
+// initials avatar. Avoids a hardcoded external fallback URL that would
+// break uniformly across every speaker missing a photo.
+const SpeakerAvatar: React.FC<{
+  name: string
+  photoUrl?: string
+  size: 'sm' | 'md'
+  className?: string
+}> = ({ name, photoUrl, size, className = '' }) => {
+  const [failed, setFailed] = useState(false)
+  const dim = size === 'md' ? 'h-16 w-16 text-lg' : 'h-10 w-10 text-sm'
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+
+  if (!photoUrl || failed) {
+    return (
+      <div
+        className={`${dim} rounded-full bg-indigo-100 text-indigo-700 font-medium flex items-center justify-center flex-shrink-0 ${className}`}
+        aria-label={name}
+      >
+        {initials}
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={photoUrl}
+      alt={name}
+      className={`${dim} rounded-full object-cover flex-shrink-0 ${className}`}
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
 interface SpeakerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -154,15 +194,7 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId 
                 />
                 {formData.photoUrl && (
                   <div className="mt-2">
-                    <img 
-                      src={formData.photoUrl} 
-                      alt="Speaker preview" 
-                      className="h-16 w-16 rounded-full object-cover"
-                      onError={(e) => {
-                        // If image fails to load, set a default
-                        (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
-                      }}
-                    />
+                    <SpeakerAvatar name={formData.name || 'Speaker'} photoUrl={formData.photoUrl} size="md" />
                   </div>
                 )}
               </div>
@@ -322,22 +354,18 @@ export const SpeakersView: React.FC = () => {
           </div>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto pb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-min overflow-y-auto pb-4">
           {filteredSpeakers.map(speaker => {
             const speakerSessions = getSpeakerSessions(speaker.id);
-            
+
             return (
-              <div key={speaker.id} className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+              <div
+                key={speaker.id}
+                className="bg-white rounded-lg shadow overflow-hidden flex flex-col min-h-[8rem] cursor-pointer hover:shadow-md transition"
+                onClick={() => handleEditClick(speaker.id)}
+              >
                 <div className="p-4 flex items-center">
-                  <img 
-                    src={speaker.photoUrl} 
-                    alt={speaker.name} 
-                    className="h-16 w-16 rounded-full object-cover mr-4"
-                    onError={(e) => {
-                      // If image fails to load, set a default
-                      (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
-                    }}
-                  />
+                  <SpeakerAvatar name={speaker.name} photoUrl={speaker.photoUrl} size="md" className="mr-4" />
                   <div>
                     <h3 className="font-medium text-gray-900">{speaker.name}</h3>
                     <p className="text-sm text-gray-600">
@@ -368,13 +396,13 @@ export const SpeakersView: React.FC = () => {
                 
                 <div className="bg-gray-50 px-4 py-3 border-t flex justify-end space-x-2">
                   <button
-                    onClick={() => handleEditClick(speaker.id)}
+                    onClick={(e) => { e.stopPropagation(); handleEditClick(speaker.id); }}
                     className="p-1 text-gray-500 hover:text-indigo-600"
                   >
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={() => handleDeleteClick(speaker.id)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
                     className="p-1 text-gray-500 hover:text-red-600"
                   >
                     <Trash size={16} />
@@ -385,7 +413,7 @@ export const SpeakersView: React.FC = () => {
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow flex-1 overflow-y-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -411,20 +439,14 @@ export const SpeakersView: React.FC = () => {
                 const speakerSessions = getSpeakerSessions(speaker.id);
                 
                 return (
-                  <tr key={speaker.id} className="hover:bg-gray-50">
+                  <tr
+                    key={speaker.id}
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleEditClick(speaker.id)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <img 
-                            className="h-10 w-10 rounded-full object-cover" 
-                            src={speaker.photoUrl} 
-                            alt={speaker.name}
-                            onError={(e) => {
-                              // If image fails to load, set a default
-                              (e.target as HTMLImageElement).src = 'https://pbs.twimg.com/profile_images/431554579180695553/-iRNAvKf_400x400.jpeg';
-                            }}
-                          />
-                        </div>
+                        <SpeakerAvatar name={speaker.name} photoUrl={speaker.photoUrl} size="sm" />
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{speaker.name}</div>
                         </div>
@@ -452,13 +474,13 @@ export const SpeakersView: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => handleEditClick(speaker.id)}
+                          onClick={(e) => { e.stopPropagation(); handleEditClick(speaker.id); }}
                           className="text-indigo-600 hover:text-indigo-900"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(speaker.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
                           className="text-red-600 hover:text-red-900"
                         >
                           <Trash size={16} />
