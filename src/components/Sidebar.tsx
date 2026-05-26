@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import {
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Edit,
   Plus,
-  X,
   Trash2
 } from 'lucide-react'
 import { useStore } from '../store'
@@ -197,25 +197,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     deleteAccessLevel
   } = useStore()
 
+  // Single floating toggle button — same vertical position in both states.
+  // When open: sits flush against the sidebar's right edge.
+  // When closed: sits flush against the viewport's left edge.
+  const ToggleHandle = (
+    <button
+      onClick={toggleSidebar}
+      aria-label={isOpen ? 'Collapse filters' : 'Expand filters'}
+      title={isOpen ? 'Collapse filters' : 'Expand filters'}
+      className={`fixed top-20 z-30 bg-white border border-gray-200 p-2 shadow-md transition-all hover:bg-gray-50 ${
+        isOpen ? 'left-64 -translate-x-px rounded-r-md' : 'left-0 rounded-r-md'
+      }`}
+    >
+      {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+    </button>
+  )
+
   if (!isOpen) {
-    return (
-      <button
-        onClick={toggleSidebar}
-        className="fixed top-20 left-0 bg-white p-2 rounded-r-md shadow"
-      >
-        <ChevronRight size={16}/>
-      </button>
-    )
+    return ToggleHandle
   }
 
   return (
-    <div className="flex flex-col h-full w-64 bg-white border-r overflow-y-auto">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-medium text-gray-800">Filters</h2>
-        <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-700">
-          <X size={16}/>
-        </button>
-      </div>
+    <>
+      {ToggleHandle}
+      <div className="flex flex-col h-full w-64 bg-white border-r overflow-y-auto">
+        <div className="p-4 border-b">
+          <h2 className="font-medium text-gray-800">Filters</h2>
+        </div>
       <div className="flex-1 p-4 overflow-y-auto">
         <FilterSection
           title="Venues"
@@ -287,6 +295,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           selectedItems={selectedFilters.accessLevels}
         />
       </div>
-    </div>
+      </div>
+    </>
   )
 }

@@ -148,7 +148,12 @@ const closeModal = () => {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <DateNavigator date={selectedDate} onDateChange={setSelectedDate} />
+        <DateNavigator
+          date={selectedDate}
+          onDateChange={setSelectedDate}
+          minDate={currentEvent?.startDate}
+          maxDate={currentEvent?.endDate}
+        />
         <div className="flex items-center space-x-2">
           <button onClick={handleZoomIn} disabled={zoomLevel === slotDurations.length - 1} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md disabled:opacity-50">
             <ZoomIn size={16} />

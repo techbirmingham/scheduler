@@ -148,7 +148,12 @@ const resources = venues
         </div>
       </div>
 
-      <DateNavigator date={selectedDate} onDateChange={setSelectedDate}/>
+      <DateNavigator
+        date={selectedDate}
+        onDateChange={setSelectedDate}
+        minDate={currentEvent?.startDate}
+        maxDate={currentEvent?.endDate}
+      />
 
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden mt-4">
         <FullCalendar
