@@ -240,6 +240,19 @@ missing-env error at runtime.
 
 Mostly polish and reach, not blockers. In rough priority order:
 
+- **Session hover tooltip in Grid and Timeline.** Session blocks in the
+  calendar views are narrow — title gets truncated, speakers/venue/tracks
+  have nowhere to display. A small themed tooltip via FullCalendar's
+  `eventMouseEnter` / `eventMouseLeave` would show title, AM/PM time
+  range, venue, speakers, session-type chip, track chips, and a gating
+  badge for non-public sessions. ~30–45 min of work. Touch alt (tap to
+  expand) is a follow-up once mobile responsiveness lands.
+- **Typography pass on Grid and Timeline.** Most pages adopted a
+  consistent font/size hierarchy during the Settings / Sessions / Map
+  polish passes; Grid and Timeline didn't get the same treatment and
+  feel inconsistent next to the others. Audit the FullCalendar overrides
+  in `src/index.css` (toolbar, slot labels, resource headers, event
+  labels) and align with the rest of the app.
 - **Speaker headshot upload via Supabase Storage.** Today headshots are URL
   fields; nobody is going to paste 60 URLs. Sketched two paths: admin-only
   uploader (~1–2 hours) and a tokenized public link per speaker so the
