@@ -139,6 +139,15 @@ take ~10 seconds; AuthGate races the lookup against a 10-second timeout and
 surfaces the failure as a recoverable "Sign-in problem" screen with a
 Reload button.
 
+After the lookup succeeds, AuthGate stashes the email and role into the
+Zustand store. Every view consumes `useIsAdmin()` to gate destructive UI —
+delete buttons in SessionModal, the sidebar filter lists, Settings rows,
+Organizations, Map, Speakers, and ListView are all hidden for editors.
+The header chip in `Layout.tsx` reads the same store fields to show the
+signed-in identity and role, plus a sign-out button. RLS still gates the
+underlying data — an editor who bypasses the UI would still be blocked by
+the database — but the role-gating keeps the surface honest.
+
 Secrets to be aware of: the Supabase URL and **publishable** key are in the
 client bundle by design (they're public; RLS is what keeps the data safe).
 The Mapbox token in the client is also public, but it's URL-restricted in
@@ -235,10 +244,6 @@ Mostly polish and reach, not blockers. In rough priority order:
   match the density and chip patterns the other views adopted.
 - **Programs inline editor.** Adding/removing host/presenter/sponsor orgs on
   a program is SQL-only today. Needs a mini multi-org picker UI in Settings.
-- **Admin/editor permission gating.** The role distinction exists in
-  `team_members` and SQL, but every signed-in user sees the same UI surface.
-  Wiring it up means tracking the current user's role in the store and
-  conditioning destructive actions on it.
 - **Speaker headshot upload via Supabase Storage.** Today headshots are URL
   fields; nobody is going to paste 60 URLs. Sketched two paths: admin-only
   uploader (~1–2 hours) and a tokenized public link per speaker so the
@@ -257,8 +262,11 @@ Mostly polish and reach, not blockers. In rough priority order:
   cleanup, just sequencing.
 - **Tier display order centralized.** Lives in two files
   (`OrganizationsView.tsx` and `SettingsView.tsx`) today.
-- **Audit log viewer.** Data is in `audit_log` already; a Settings → History
-  tab would surface it.
+- **Team management UI.** Adding/removing rows in `team_members` is SQL-only
+  today. A small admin-only "Team" section in Settings would replace it
+  with email + role + remove. Schema is already done; just store actions
+  plus a view. Worth doing if the team grows past a handful or if
+  non-technical admins start needing to add people.
 
 ## File map
 
@@ -280,13 +288,19 @@ is the filter panel with its single floating collapse toggle.
 **Modals.** `src/components/SessionModal.tsx` is the big one — section
 grouping for Basics / Schedule / People / Categorization / Attribution /
 Access, with multi-select pickers backed by react-select.
+`src/components/ConfirmDialog.tsx` is the themed confirm modal plus the
+`useConfirm()` hook, mounted once via `ConfirmProvider` at the app root.
+Every destructive action (delete, restore, anything irreversible) routes
+through it instead of `window.confirm`. Destructive variant is red; Enter
+confirms, Esc cancels.
 
 **Views** live in `src/views/`: `GridView` (FullCalendar resource-timegrid),
 `TimelineView` (resource-timeline), `ListView` (sessions grouped by date in
 tables, with track chips and gating badges), `MapView` (Mapbox + venue
 list), `SpeakersView` (grid/list with the SpeakerAvatar initials component),
 `OrganizationsView` (sponsor directory with the full cash/in-kind editor),
-`SettingsView` (collapsible taxonomy sections).
+`SettingsView` (collapsible taxonomy sections plus the admin-only Change
+History panel that reads from `audit_log` and offers per-row Restore).
 
 **Store and types.** `src/store/index.ts` defines the Zustand state shape,
 the CRUD actions for each entity, `loadAll()` and the extracted

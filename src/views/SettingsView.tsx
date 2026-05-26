@@ -4,8 +4,10 @@ import dayjs from 'dayjs'
 import {
   ChevronDown, ChevronRight, Plus, X, Trash, Tag,
   Layers, Sparkles, Calendar, Shield, Building2, Briefcase, ExternalLink,
+  History, RotateCcw,
 } from 'lucide-react'
-import { useStore } from '../store'
+import { useStore, useIsAdmin, type AuditEntry } from '../store'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const SESSION_CATEGORIES = ['Session', 'Showcase', 'Activation', 'Networking', 'Other']
 
@@ -77,9 +79,11 @@ const EditableRow: React.FC<{
   canEditColor?: boolean
   category?: string | null
   categoryOptions?: string[]
+  canDelete?: boolean
   onSave: (name: string, color?: string, category?: string) => void
   onDelete: () => void
-}> = ({ name, color, badge, meta, canEditColor, category, categoryOptions, onSave, onDelete }) => {
+}> = ({ name, color, badge, meta, canEditColor, category, categoryOptions, canDelete = true, onSave, onDelete }) => {
+  const confirm = useConfirm()
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(name)
   const [draftColor, setDraftColor] = useState(color || '#6366f1')
@@ -162,13 +166,22 @@ const EditableRow: React.FC<{
       </button>
       {badge}
       {meta && <span className="text-xs text-gray-500 ml-1 truncate max-w-[12rem]">{meta}</span>}
-      <button
-        onClick={() => onDelete()}
-        className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
-        title="Delete"
-      >
-        <Trash size={14} />
-      </button>
+      {canDelete && (
+        <button
+          onClick={async () => {
+            const ok = await confirm({
+              title: `Delete "${name}"?`,
+              confirmLabel: 'Delete',
+              destructive: true,
+            })
+            if (ok) onDelete()
+          }}
+          className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition"
+          title="Delete"
+        >
+          <Trash size={14} />
+        </button>
+      )}
     </div>
   )
 }
@@ -232,6 +245,113 @@ const AddRow: React.FC<{
 }
 
 // ============================================================================
+// Change history
+// ============================================================================
+
+// Metadata fields skipped when computing the "what changed" diff for UPDATEs.
+const DIFF_IGNORE_FIELDS = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
+
+// Lightweight prettifier — keeps the diff column readable when values are
+// long strings, arrays, or JSON. We don't need full JSON formatting here.
+function formatValue(v: any): string {
+  if (v === null || v === undefined) return '—'
+  if (Array.isArray(v)) return v.length === 0 ? '[]' : `[${v.length} items]`
+  if (typeof v === 'object') return JSON.stringify(v)
+  const s = String(v)
+  return s.length > 60 ? s.slice(0, 60) + '…' : s
+}
+
+function displayName(entry: AuditEntry): string {
+  const d = entry.newData ?? entry.oldData ?? {}
+  return d.title || d.name || d.email || '(unnamed)'
+}
+
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime()
+  const now = Date.now()
+  const seconds = Math.max(0, Math.round((now - then) / 1000))
+  if (seconds < 60) return `${seconds}s ago`
+  const mins = Math.round(seconds / 60)
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.round(hours / 24)
+  return `${days}d ago`
+}
+
+interface DiffField { field: string; from: any; to: any }
+function diffFields(oldData: any, newData: any): DiffField[] {
+  const o = oldData ?? {}
+  const n = newData ?? {}
+  const keys = new Set([...Object.keys(o), ...Object.keys(n)])
+  const out: DiffField[] = []
+  for (const k of keys) {
+    if (DIFF_IGNORE_FIELDS.has(k)) continue
+    if (JSON.stringify(o[k]) !== JSON.stringify(n[k])) {
+      out.push({ field: k, from: o[k], to: n[k] })
+    }
+  }
+  return out
+}
+
+const ACTION_BADGES: Record<string, string> = {
+  UPDATE: 'bg-amber-100 text-amber-800',
+  DELETE: 'bg-red-100 text-red-800',
+  INSERT: 'bg-green-100 text-green-800',
+}
+
+const HistoryRow: React.FC<{
+  entry: AuditEntry
+  onRestore: (entry: AuditEntry) => void
+}> = ({ entry, onRestore }) => {
+  const diffs = entry.action === 'UPDATE'
+    ? diffFields(entry.oldData, entry.newData)
+    : []
+  const shown = diffs.slice(0, 2)
+  const extra = diffs.length - shown.length
+
+  return (
+    <div className="border border-gray-200 rounded-md p-3 hover:bg-gray-50 transition">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded ${ACTION_BADGES[entry.action] ?? 'bg-gray-100 text-gray-700'}`}>
+          {entry.action}
+        </span>
+        <span className="text-xs text-gray-500 font-mono">{entry.tableName}</span>
+        <span className="text-sm font-medium text-gray-800 truncate flex-1 min-w-0">{displayName(entry)}</span>
+        <span className="text-xs text-gray-500" title={new Date(entry.changedAt).toLocaleString()}>
+          {relativeTime(entry.changedAt)}
+        </span>
+        <button
+          onClick={() => onRestore(entry)}
+          className="ml-1 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border border-gray-300 text-gray-700 hover:bg-white hover:border-indigo-400 hover:text-indigo-700"
+          title="Restore this version"
+        >
+          <RotateCcw size={12} />
+          Restore
+        </button>
+      </div>
+      {entry.changedByEmail && (
+        <div className="text-xs text-gray-500 mt-1">by {entry.changedByEmail}</div>
+      )}
+      {entry.action === 'UPDATE' && diffs.length > 0 && (
+        <div className="mt-2 text-xs space-y-0.5">
+          {shown.map(d => (
+            <div key={d.field} className="text-gray-600">
+              <span className="font-medium text-gray-700">{d.field}:</span>{' '}
+              <span className="text-red-600 line-through">{formatValue(d.from)}</span>{' → '}
+              <span className="text-green-700">{formatValue(d.to)}</span>
+            </div>
+          ))}
+          {extra > 0 && (
+            <div className="text-gray-400">+ {extra} more field{extra === 1 ? '' : 's'} changed</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================================
 // Main view
 // ============================================================================
 
@@ -245,9 +365,43 @@ export const SettingsView: React.FC = () => {
     addProgram, updateProgram, deleteProgram,
     addExperience, updateExperience, deleteExperience,
     addAccessLevel, updateAccessLevel, deleteAccessLevel,
+    auditLog, fetchAuditLog, restoreFromAudit,
   } = useStore()
+  const isAdmin = useIsAdmin()
+  const confirm = useConfirm()
 
   const currentEvent = events.find(e => e.id === currentEventId)
+
+  // Load audit log on mount when admin. Editors don't see this section, so
+  // skip the fetch entirely for them.
+  React.useEffect(() => {
+    if (isAdmin) fetchAuditLog()
+  }, [isAdmin, fetchAuditLog])
+
+  const handleRestore = async (entry: AuditEntry) => {
+    const title = entry.action === 'DELETE'
+      ? `Restore "${displayName(entry)}"?`
+      : `Revert changes to "${displayName(entry)}"?`
+    const body = entry.action === 'DELETE'
+      ? <>This re-creates the {entry.tableName} row from before it was deleted.</>
+      : <>This overwrites the current row with the state from <strong>{relativeTime(entry.changedAt)}</strong>. Any edits made after this entry will be lost.</>
+    const ok = await confirm({
+      title,
+      body,
+      confirmLabel: 'Restore',
+      destructive: false,
+    })
+    if (!ok) return
+    const result = await restoreFromAudit(entry)
+    if (!result.success) {
+      await confirm({
+        title: 'Restore failed',
+        body: <span className="text-red-700">{result.error ?? 'Unknown error'}</span>,
+        confirmLabel: 'OK',
+        cancelLabel: '',
+      })
+    }
+  }
 
   return (
     <div className="h-full overflow-auto">
@@ -295,6 +449,7 @@ export const SettingsView: React.FC = () => {
                 categoryOptions={SESSION_CATEGORIES}
                 badge={categoryBadge((st as any).category)}
                 canEditColor
+                canDelete={isAdmin}
                 onSave={(name, color, category) => updateSessionType(st.id, { name, color, category } as any)}
                 onDelete={() => deleteSessionType(st.id)}
               />
@@ -317,6 +472,7 @@ export const SettingsView: React.FC = () => {
                 name={t.name}
                 color={t.color || null}
                 canEditColor
+                canDelete={isAdmin}
                 onSave={(name, color) => updateTrack(t.id, { name, color })}
                 onDelete={() => deleteTrack(t.id)}
               />
@@ -337,6 +493,7 @@ export const SettingsView: React.FC = () => {
               <EditableRow
                 key={p.id}
                 name={p.name}
+                canDelete={isAdmin}
                 onSave={(name) => updateProgram(p.id, { name })}
                 onDelete={() => deleteProgram(p.id)}
               />
@@ -357,6 +514,7 @@ export const SettingsView: React.FC = () => {
               <EditableRow
                 key={a.id}
                 name={a.name}
+                canDelete={isAdmin}
                 onSave={(name) => updateAccessLevel(a.id, { name })}
                 onDelete={() => deleteAccessLevel(a.id)}
               />
@@ -378,6 +536,7 @@ export const SettingsView: React.FC = () => {
               <EditableRow
                 key={x.id}
                 name={x.name}
+                canDelete={isAdmin}
                 onSave={(name) => updateExperience(x.id, { name })}
                 onDelete={() => deleteExperience(x.id)}
               />
@@ -401,6 +560,33 @@ export const SettingsView: React.FC = () => {
             <ExternalLink size={14} />
           </Link>
         </Section>
+
+        {/* ── CHANGE HISTORY (admin only) ────────────────────────────── */}
+        {isAdmin && (
+          <Section
+            title="Change History"
+            icon={<History size={18} />}
+            count={auditLog.length}
+            defaultOpen={false}
+            description="Recent edits and deletions across the event. Restore an entry to roll back an accidental change."
+          >
+            {auditLog.length === 0 ? (
+              <p className="text-sm text-gray-500">No recent changes recorded.</p>
+            ) : (
+              <div className="space-y-2">
+                {auditLog.map(entry => (
+                  <HistoryRow key={entry.id} entry={entry} onRestore={handleRestore} />
+                ))}
+                <button
+                  onClick={() => fetchAuditLog(auditLog.length + 50)}
+                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-800"
+                >
+                  Load older changes
+                </button>
+              </div>
+            )}
+          </Section>
+        )}
 
       </div>
     </div>

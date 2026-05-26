@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import Select, { MultiValue, SingleValue, StylesConfig } from 'react-select'
-import { useStore, Session } from '../store'
+import { useStore, useIsAdmin, Session } from '../store'
+import { useConfirm } from './ConfirmDialog'
 
 interface SessionModalProps {
   isOpen: boolean
@@ -53,6 +54,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     organizations, programs, experiences, accessLevels,
     addSession, updateSession, deleteSession,
   } = useStore()
+  const isAdmin = useIsAdmin()
+  const confirm = useConfirm()
 
   const existing = sessionId
     ? sessions.find(s => s.id === sessionId) || null
@@ -176,8 +179,17 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     onClose()
   }
 
-  const handleDelete = () => {
-    if (sessionId && window.confirm('Delete this session?')) {
+  const handleDelete = async () => {
+    if (!sessionId) return
+    const ok = await confirm({
+      title: 'Delete this session?',
+      body: existing
+        ? <>This permanently removes <strong>{existing.title || 'this session'}</strong>.</>
+        : undefined,
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (ok) {
       deleteSession(sessionId)
       onClose()
     }
@@ -438,7 +450,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
           {/* footer */}
           <div className="px-6 py-4 bg-gray-50 border-t flex justify-between">
-            {existing ? (
+            {existing && isAdmin ? (
               <button
                 type="button"
                 onClick={handleDelete}

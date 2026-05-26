@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react';
-import { useStore, Speaker } from '../store';
+import { useStore, useIsAdmin, Speaker } from '../store';
+import { useConfirm } from '../components/ConfirmDialog';
 
 // Renders a speaker's photo if one exists, otherwise a CSS-generated
 // initials avatar. Avoids a hardcoded external fallback URL that would
@@ -244,6 +245,8 @@ export const SpeakersView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const { speakers, sessions, deleteSpeaker } = useStore();
+  const isAdmin = useIsAdmin();
+  const confirm = useConfirm();
   
   // Filter speakers based on search term
   const filteredSpeakers = speakers.filter(speaker => 
@@ -263,21 +266,21 @@ export const SpeakersView: React.FC = () => {
     setModalOpen(true);
   };
   
-  const handleDeleteClick = (speakerId: string) => {
-    // Check if speaker is assigned to any sessions
-    const speakerSessions = sessions.filter(session => 
+  const handleDeleteClick = async (speakerId: string) => {
+    const speaker = speakers.find(s => s.id === speakerId);
+    const speakerSessions = sessions.filter(session =>
       session.speakerIds.includes(speakerId)
     );
-    
-    if (speakerSessions.length > 0) {
-      const confirmation = window.confirm(
-        `This speaker is assigned to ${speakerSessions.length} session(s). Removing them will also remove them from these sessions. Continue?`
-      );
-      
-      if (!confirmation) return;
-    }
-    
-    deleteSpeaker(speakerId);
+
+    const ok = await confirm({
+      title: speaker ? `Delete "${speaker.name}"?` : 'Delete this speaker?',
+      body: speakerSessions.length > 0
+        ? <>This speaker is assigned to <strong>{speakerSessions.length} session{speakerSessions.length === 1 ? '' : 's'}</strong>. Removing them will also remove them from those sessions.</>
+        : undefined,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (ok) deleteSpeaker(speakerId);
   };
   
   const closeModal = () => {
@@ -401,12 +404,14 @@ export const SpeakersView: React.FC = () => {
                   >
                     <Edit size={16} />
                   </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
-                    className="p-1 text-gray-500 hover:text-red-600"
-                  >
-                    <Trash size={16} />
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
+                      className="p-1 text-gray-500 hover:text-red-600"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -479,12 +484,14 @@ export const SpeakersView: React.FC = () => {
                         >
                           <Edit size={16} />
                         </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash size={16} />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteClick(speaker.id); }}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

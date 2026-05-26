@@ -3,20 +3,30 @@ import { create } from 'zustand'
 import { supabase } from '../utils/supabaseClient'
 import type {
   ConferenceEvent, Speaker, Venue, Session, SessionType, Track,
-  Organization, Program, Experience, AccessLevel,
+  Organization, Program, Experience, AccessLevel, AuditEntry,
 } from '../types'
 
 // Re-export the entity types so existing imports like
 // `import { Session } from '../store'` continue to work unchanged.
 export type {
   ConferenceEvent, Speaker, Venue, Session, SessionType, Track,
-  Organization, Program, Experience, AccessLevel,
+  Organization, Program, Experience, AccessLevel, AuditEntry,
 } from '../types'
+
+export type UserRole = 'admin' | 'editor'
 
 interface State {
   events: ConferenceEvent[]
   currentEventId: string | null
   setCurrentEventId: (id: string) => Promise<void>
+
+  // Identity of the signed-in team member, set by AuthGate after the
+  // team_members lookup succeeds. null while we don't know yet. The role
+  // drives admin-only UI gating; it is not a security boundary — RLS /
+  // is_admin() in Postgres is.
+  currentUserEmail: string | null
+  currentUserRole: UserRole | null
+  setCurrentUser: (email: string | null, role: UserRole | null) => void
 
   speakers: Speaker[]
   venues: Venue[]
@@ -67,6 +77,13 @@ interface State {
 
   toggleFilter: (filterType: keyof State['selectedFilters'], id: string) => void
   clearFilters: () => void
+
+  // Audit log + restore. auditLog is fetched on demand (not on initial load)
+  // since the History panel is the only consumer. restoreFromAudit reapplies
+  // an old state — INSERT for DELETE entries, UPDATE for UPDATE entries.
+  auditLog: AuditEntry[]
+  fetchAuditLog: (limit?: number) => Promise<void>
+  restoreFromAudit: (entry: AuditEntry) => Promise<{ success: boolean; error?: string }>
 }
 
 export const useStore = create<State>((set, get) => {
@@ -148,8 +165,11 @@ export const useStore = create<State>((set, get) => {
   function clearAll() {
     set({
       events: [], currentEventId: null,
+      currentUserEmail: null,
+      currentUserRole: null,
       speakers: [], venues: [], sessions: [], sessionTypes: [], tracks: [],
       organizations: [], programs: [], experiences: [], accessLevels: [],
+      auditLog: [],
     })
   }
 
@@ -166,6 +186,9 @@ export const useStore = create<State>((set, get) => {
   return {
     events: [],
     currentEventId: null,
+    currentUserEmail: null,
+    currentUserRole: null,
+    setCurrentUser: (email, role) => set({ currentUserEmail: email, currentUserRole: role }),
 
     // Switch the active event. Clears stale filter selections (filter
     // ids belong to the old event) and re-fetches all event-scoped
@@ -522,5 +545,63 @@ export const useStore = create<State>((set, get) => {
         }
       }))
     },
+
+    // — Audit log —
+    auditLog: [],
+
+    fetchAuditLog: async (limit = 50) => {
+      const { data, error } = await supabase
+        .from('audit_log')
+        .select('*')
+        .in('action', ['UPDATE', 'DELETE'])
+        .order('changedAt', { ascending: false })
+        .limit(limit)
+      if (error) {
+        console.error('fetchAuditLog failed', error)
+        return
+      }
+      set({ auditLog: (data ?? []) as AuditEntry[] })
+    },
+
+    // Restore a row to the state captured in entry.oldData.
+    //  - DELETE entry: re-insert the old row (with its original id so any
+    //    surviving FK references still resolve).
+    //  - UPDATE entry: write oldData back over the current row.
+    // After either path, reload event-scoped data so the UI reflects the
+    // change. Returns { success, error? } so the caller can surface failures.
+    restoreFromAudit: async (entry) => {
+      if (!entry.oldData) {
+        return { success: false, error: 'Nothing to restore (no oldData on this entry).' }
+      }
+      const payload = { ...entry.oldData }
+      // updated_at / created_at on the old row would be stale; let the DB
+      // reassign updated_at via its trigger.
+      delete payload.updated_at
+      delete payload.updated_by
+
+      if (entry.action === 'DELETE') {
+        const { error } = await supabase.from(entry.tableName).insert(payload)
+        if (error) return { success: false, error: error.message }
+      } else if (entry.action === 'UPDATE') {
+        if (!entry.recordId) return { success: false, error: 'Missing recordId on UPDATE entry.' }
+        const { id: _id, ...rest } = payload
+        const { error } = await supabase
+          .from(entry.tableName)
+          .update(rest)
+          .eq('id', entry.recordId)
+        if (error) return { success: false, error: error.message }
+      } else {
+        return { success: false, error: `Cannot restore from ${entry.action} entries.` }
+      }
+
+      const eid = get().currentEventId
+      if (eid) await loadScopedData(eid)
+      await get().fetchAuditLog()
+      return { success: true }
+    },
   }
 })
+
+// Convenience selector for admin-gated UI. Returns false when the role
+// isn't known yet, so destructive buttons stay hidden until auth resolves.
+export const useIsAdmin = () => useStore((s) => s.currentUserRole === 'admin')

@@ -122,6 +122,21 @@ export interface TeamMember {
   role: 'admin' | 'editor';
 }
 
+/** A row from the audit_log table — written by triggers on every
+ *  insert/update/delete of an audited table. INSERTs are recorded too but
+ *  the History panel only surfaces UPDATEs and DELETEs (the destructive ones). */
+export interface AuditEntry {
+  id: string;
+  tableName: string;
+  recordId: string | null;
+  action: 'INSERT' | 'UPDATE' | 'DELETE';
+  changedBy: string | null;
+  changedByEmail: string | null;
+  changedAt: string;
+  oldData: Record<string, any> | null;
+  newData: Record<string, any> | null;
+}
+
 // Calendar event shape consumed by FullCalendar in the grid/timeline views.
 export interface CalendarEvent extends EventInput {
   id: string;

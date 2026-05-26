@@ -7,7 +7,8 @@ import {
   Plus,
   Trash2
 } from 'lucide-react'
-import { useStore } from '../store'
+import { useStore, useIsAdmin } from '../store'
+import { useConfirm } from './ConfirmDialog'
 
 interface SidebarProps {
   isOpen: boolean
@@ -22,6 +23,7 @@ interface FilterSectionProps {
   onDeleteItem: (id: string) => void
   onSelectItem: (id: string) => void
   selectedItems: string[]
+  canDelete: boolean
 }
 
 const FilterSection: React.FC<FilterSectionProps> = ({
@@ -31,8 +33,10 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   onEditItem,
   onDeleteItem,
   onSelectItem,
-  selectedItems
+  selectedItems,
+  canDelete
 }) => {
+  const confirm = useConfirm()
   const [isOpen, setIsOpen] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -112,21 +116,22 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                     >
                       <Edit size={14}/>
                     </button>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation()
-                        if (
-                          window.confirm(
-                            `Delete "${item.name}"?`
-                          )
-                        ) {
-                          onDeleteItem(item.id)
-                        }
-                      }}
-                      className="p-1 text-gray-400 hover:text-red-600"
-                    >
-                      <Trash2 size={14}/>
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={async e => {
+                          e.stopPropagation()
+                          const ok = await confirm({
+                            title: `Delete "${item.name}"?`,
+                            confirmLabel: 'Delete',
+                            destructive: true,
+                          })
+                          if (ok) onDeleteItem(item.id)
+                        }}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 size={14}/>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -196,6 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     updateAccessLevel,
     deleteAccessLevel
   } = useStore()
+  const isAdmin = useIsAdmin()
 
   // Single floating toggle button — same vertical position in both states.
   // When open: sits flush against the sidebar's right edge.
@@ -233,6 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteVenue}
           onSelectItem={id => toggleFilter('venues', id)}
           selectedItems={selectedFilters.venues}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -243,6 +250,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteSessionType}
           onSelectItem={id => toggleFilter('sessionTypes', id)}
           selectedItems={selectedFilters.sessionTypes}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -253,6 +261,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteTrack}
           onSelectItem={id => toggleFilter('tracks', id)}
           selectedItems={selectedFilters.tracks}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -263,6 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteOrganization}
           onSelectItem={id => toggleFilter('organizations', id)}
           selectedItems={selectedFilters.organizations}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -273,6 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteProgram}
           onSelectItem={id => toggleFilter('programs', id)}
           selectedItems={selectedFilters.programs}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -283,6 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteExperience}
           onSelectItem={id => toggleFilter('experiences', id)}
           selectedItems={selectedFilters.experiences}
+          canDelete={isAdmin}
         />
 
         <FilterSection
@@ -293,6 +305,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onDeleteItem={deleteAccessLevel}
           onSelectItem={id => toggleFilter('accessLevels', id)}
           selectedItems={selectedFilters.accessLevels}
+          canDelete={isAdmin}
         />
       </div>
       </div>

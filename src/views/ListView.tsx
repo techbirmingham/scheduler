@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs' // added to fix the UTC issue where the list date header was a day behind
 import { ChevronUp, ChevronDown, ChevronsUpDown, Plus, Search, Edit, Trash, Lock } from 'lucide-react';
-import { useStore, Session } from '../store';
+import { useStore, useIsAdmin, Session } from '../store';
 import { SessionModal } from '../components/SessionModal';
+import { useConfirm } from '../components/ConfirmDialog';
 import { getInitialDate } from '../utils/dates';
 
 export const ListView: React.FC = () => {
   const { sessions, venues, speakers, sessionTypes, tracks, accessLevels, selectedFilters, deleteSession, events, currentEventId } = useStore();
+  const isAdmin = useIsAdmin();
+  const confirm = useConfirm();
   const currentEvent = events.find(e => e.id === currentEventId);
   
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,11 +79,16 @@ export const ListView: React.FC = () => {
     setModalOpen(true);
   };
 
-  const handleDeleteClick = (e: React.MouseEvent, sessionId: string) => {
+  const handleDeleteClick = async (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation(); // Prevent row click from triggering
-    if (window.confirm('Are you sure you want to delete this session?')) {
-      deleteSession(sessionId);
-    }
+    const session = sessions.find(s => s.id === sessionId);
+    const ok = await confirm({
+      title: 'Delete this session?',
+      body: session ? <>This permanently removes <strong>{session.title || 'this session'}</strong>.</> : undefined,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (ok) deleteSession(sessionId);
   };
 
   const handleRowClick = (sessionId: string) => {
@@ -312,13 +320,15 @@ export const ListView: React.FC = () => {
                                 >
                                   <Edit size={16} />
                                 </button>
-                                <button
-                                  onClick={(e) => handleDeleteClick(e, session.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                  title="Delete session"
-                                >
-                                  <Trash size={16} />
-                                </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={(e) => handleDeleteClick(e, session.id)}
+                                    className="text-red-600 hover:text-red-900"
+                                    title="Delete session"
+                                  >
+                                    <Trash size={16} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react'
-import { useStore } from '../store'
+import { useStore, useIsAdmin } from '../store'
+import { useConfirm } from '../components/ConfirmDialog'
 import type { Organization } from '../types'
 
 // ============================================================================
@@ -232,6 +233,8 @@ const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => 
 
 export const OrganizationsView: React.FC = () => {
   const { organizations, sessions, deleteOrganization } = useStore()
+  const isAdmin = useIsAdmin()
+  const confirm = useConfirm()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -268,13 +271,18 @@ export const OrganizationsView: React.FC = () => {
 
   const handleAddClick = () => { setEditingId(null); setModalOpen(true) }
   const handleEditClick = (id: string) => { setEditingId(id); setModalOpen(true) }
-  const handleDeleteClick = (e: React.MouseEvent, org: Organization) => {
+  const handleDeleteClick = async (e: React.MouseEvent, org: Organization) => {
     e.stopPropagation()
     const count = sessionsForOrg(org.id).length
-    const msg = count > 0
-      ? `"${org.name}" is referenced by ${count} session(s). Deleting will remove it from those sessions. Continue?`
-      : `Delete "${org.name}"?`
-    if (window.confirm(msg)) deleteOrganization(org.id)
+    const ok = await confirm({
+      title: `Delete "${org.name}"?`,
+      body: count > 0
+        ? <>This organization is referenced by <strong>{count} session{count === 1 ? '' : 's'}</strong>. Deleting will remove it from those sessions.</>
+        : undefined,
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (ok) deleteOrganization(org.id)
   }
 
   return (
@@ -348,13 +356,15 @@ export const OrganizationsView: React.FC = () => {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="font-medium text-gray-900 leading-snug">{o.name}</h3>
-                  <button
-                    onClick={e => handleDeleteClick(e, o)}
-                    className="p-1 text-gray-400 hover:text-red-600"
-                    title="Delete"
-                  >
-                    <Trash size={14} />
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={e => handleDeleteClick(e, o)}
+                      className="p-1 text-gray-400 hover:text-red-600"
+                      title="Delete"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 mb-2">
                   <TierBadge tier={ex.tier} />
@@ -425,13 +435,15 @@ export const OrganizationsView: React.FC = () => {
                         >
                           <Edit size={16} />
                         </button>
-                        <button
-                          onClick={e => handleDeleteClick(e, o)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash size={16} />
-                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={e => handleDeleteClick(e, o)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <Trash size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

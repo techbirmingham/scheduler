@@ -2,6 +2,7 @@
 import React, { ReactNode, useState, useEffect } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabaseClient'
+import { useStore, type UserRole } from '../store'
 
 interface AuthGateProps {
   children: ReactNode
@@ -42,7 +43,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
         // as a visible error instead of an infinite "Verifying…" spinner.
         const queryPromise = supabase
           .from('team_members')
-          .select('id')
+          .select('id, role')
           .ilike('email', email)
           .maybeSingle()
         const timeoutPromise = new Promise<never>((_, reject) =>
@@ -56,6 +57,7 @@ export const AuthGate: React.FC<AuthGateProps> = ({ children }) => {
           return
         }
         if (data) {
+          useStore.getState().setCurrentUser(email, data.role as UserRole)
           setState({ status: 'authorized' })
         } else {
           await supabase.auth.signOut()

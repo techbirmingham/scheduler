@@ -2,6 +2,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { AuthGate }      from './components/AuthGate'
+import { ConfirmProvider } from './components/ConfirmDialog'
 import { Layout }        from './components/Layout'
 import { GridView }      from './views/GridView'
 import { TimelineView }  from './views/TimelineView'
@@ -14,6 +15,7 @@ import { SettingsView }       from './views/SettingsView'
 function App() {
   return (
     <AuthGate>
+      <ConfirmProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Layout>
           <Routes>
@@ -27,6 +29,7 @@ function App() {
           </Routes>
         </Layout>
       </Router>
+      </ConfirmProvider>
     </AuthGate>
   )
 }

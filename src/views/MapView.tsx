@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Map as MapIcon, Plus, MapPin, Clock, Users, Edit, Trash2 } from 'lucide-react';
-import { useStore } from '../store';
+import { useStore, useIsAdmin } from '../store';
+import { useConfirm } from '../components/ConfirmDialog';
 import { SessionModal } from '../components/SessionModal';
 import { VenueModal } from '../components/VenueModal';
 import { getInitialDate } from '../utils/dates';
@@ -27,6 +28,8 @@ export const MapView: React.FC = () => {
   const [isGeocoding, setIsGeocoding] = useState(false);
   
   const { venues, sessions, sessionTypes, speakers, addVenue, updateVenue, deleteVenue, events, currentEventId } = useStore();
+  const isAdmin = useIsAdmin();
+  const confirm = useConfirm();
   const currentEvent = events.find(e => e.id === currentEventId);
 
   // Initialize map
@@ -127,9 +130,11 @@ export const MapView: React.FC = () => {
                 <button class="edit-venue-btn p-1 text-gray-400 hover:text-indigo-600 transition-colors">
                   <Edit size={16} />
                 </button>
-                <button class="delete-venue-btn p-1 text-gray-400 hover:text-red-600 transition-colors">
-                  <Trash2 size={16} />
-                </button>
+                ${isAdmin ? `
+                  <button class="delete-venue-btn p-1 text-gray-400 hover:text-red-600 transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                ` : ''}
               </div>
             </div>
 
@@ -212,10 +217,14 @@ export const MapView: React.FC = () => {
         }
 
         if (deleteButton) {
-          deleteButton.addEventListener('click', () => {
-            if (window.confirm('Are you sure you want to delete this venue? This will also remove all associated sessions.')) {
-              deleteVenue(venue.id);
-            }
+          deleteButton.addEventListener('click', async () => {
+            const ok = await confirm({
+              title: `Delete "${venue.name}"?`,
+              body: 'This will also remove all associated sessions.',
+              confirmLabel: 'Delete',
+              destructive: true,
+            });
+            if (ok) deleteVenue(venue.id);
           });
         }
         
@@ -242,7 +251,7 @@ export const MapView: React.FC = () => {
     };
 
     addMarkers();
-  }, [venues, sessions, mapLoaded, mapInstance, sessionTypes, speakers]);
+  }, [venues, sessions, mapLoaded, mapInstance, sessionTypes, speakers, isAdmin, confirm]);
 
   const handleVenueSave = (values: { id?: string; name: string; location: string; capacity: number }) => {
     if (values.id) {
@@ -343,18 +352,24 @@ export const MapView: React.FC = () => {
                       >
                         <Edit size={16} />
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm('Are you sure you want to delete this venue? This will also remove all associated sessions.')) {
-                            deleteVenue(venue.id);
-                          }
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                        title="Delete venue"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const ok = await confirm({
+                              title: `Delete "${venue.name}"?`,
+                              body: 'This will also remove all associated sessions.',
+                              confirmLabel: 'Delete',
+                              destructive: true,
+                            });
+                            if (ok) deleteVenue(venue.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete venue"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

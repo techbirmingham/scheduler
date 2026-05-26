@@ -3,9 +3,11 @@
 import React, { useState } from 'react'
 
 import { NavLink, useLocation } from 'react-router-dom'
-import { Calendar, Clock, List, Map, Users, Building2, Settings } from 'lucide-react'
+import { Calendar, Clock, List, Map, Users, Building2, Settings, LogOut } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { EventPicker } from './EventPicker'
+import { useStore } from '../store'
+import { supabase } from '../utils/supabaseClient'
 
 
 
@@ -16,6 +18,8 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const location = useLocation()
+  const currentUserEmail = useStore(s => s.currentUserEmail)
+  const currentUserRole = useStore(s => s.currentUserRole)
 
   const isMapView      = location.pathname === '/map'
   const isSpeakersView = location.pathname === '/speakers'
@@ -121,7 +125,34 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span>Settings</span>
               </NavLink>
 
-         
+            {currentUserEmail && (
+              <div
+                className="ml-3 pl-3 border-l border-gray-200 flex items-center gap-2 text-xs"
+                title={currentUserEmail}
+              >
+                <span className="text-gray-600 max-w-[14rem] truncate">{currentUserEmail}</span>
+                {currentUserRole && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
+                      currentUserRole === 'admin'
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {currentUserRole}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => supabase.auth.signOut()}
+                  className="p-1 text-gray-400 hover:text-gray-700"
+                  title="Sign out"
+                  aria-label="Sign out"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            )}
           </nav>
         </div>
       </header>
