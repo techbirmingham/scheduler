@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useStore, useIsAdmin, type AuditEntry } from '../store'
 import { useConfirm } from '../components/ConfirmDialog'
+import { ProgramModal } from '../components/ProgramModal'
 
 const SESSION_CATEGORIES = ['Session', 'Showcase', 'Activation', 'Networking', 'Other']
 
@@ -370,6 +371,14 @@ export const SettingsView: React.FC = () => {
   const isAdmin = useIsAdmin()
   const confirm = useConfirm()
 
+  // Program editor — opened from the Programs row. null id means "create new".
+  const [programModalOpen, setProgramModalOpen] = useState(false)
+  const [editingProgramId, setEditingProgramId] = useState<string | null>(null)
+  const openProgramModal = (id: string | null) => {
+    setEditingProgramId(id)
+    setProgramModalOpen(true)
+  }
+
   const currentEvent = events.find(e => e.id === currentEventId)
 
   // Load audit log on mount when admin. Editors don't see this section, so
@@ -486,20 +495,49 @@ export const SettingsView: React.FC = () => {
           title="Programs"
           icon={<Briefcase size={18} />}
           count={programs.length}
-          description="Curated series within the conference (Sloss Tech Dev, Next In Tech, etc.). Host/presenter relationships are edited via SQL today."
+          description="Curated series within the conference (Sloss Tech Dev, Next In Tech, etc.). Click a program to edit its name and host/presenter/sponsor orgs."
         >
           <div className="space-y-1.5">
-            {programs.map(p => (
-              <EditableRow
-                key={p.id}
-                name={p.name}
-                canDelete={isAdmin}
-                onSave={(name) => updateProgram(p.id, { name })}
-                onDelete={() => deleteProgram(p.id)}
-              />
-            ))}
+            {programs.map(p => {
+              const hostCount = (p.hosted_by_org_ids ?? []).length
+              const presenterCount = (p.presented_by_org_ids ?? []).length
+              const sponsorCount = (p.sponsor_org_ids ?? []).length
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => openProgramModal(p.id)}
+                  className="w-full flex items-center gap-2 p-2 border border-gray-200 rounded-md hover:border-gray-300 hover:bg-gray-50 transition text-left"
+                >
+                  <span className="flex-1 text-sm text-gray-800 truncate">{p.name}</span>
+                  <div className="flex items-center gap-1 flex-shrink-0 text-[10px]">
+                    {hostCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded font-medium bg-indigo-50 text-indigo-700" title="Host orgs">
+                        {hostCount} host{hostCount === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    {presenterCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded font-medium bg-purple-50 text-purple-700" title="Presenter orgs">
+                        {presenterCount} presenter{presenterCount === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    {sponsorCount > 0 && (
+                      <span className="px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600" title="Sponsor orgs">
+                        {sponsorCount} sponsor{sponsorCount === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
           </div>
-          <AddRow label="Add program" onAdd={(name) => addProgram({ name })} />
+          <button
+            type="button"
+            onClick={() => openProgramModal(null)}
+            className="mt-3 flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+          >
+            <Plus size={14} /> Add program
+          </button>
         </Section>
 
         {/* ── ACCESS LEVELS ─────────────────────────────────────────── */}
@@ -589,6 +627,12 @@ export const SettingsView: React.FC = () => {
         )}
 
       </div>
+
+      <ProgramModal
+        isOpen={programModalOpen}
+        onClose={() => { setProgramModalOpen(false); setEditingProgramId(null) }}
+        programId={editingProgramId}
+      />
     </div>
   )
 }

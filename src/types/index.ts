@@ -98,6 +98,16 @@ export interface Organization {
 export interface Program {
   id: string;
   name: string;
+  /** Orgs hosting this program. Lead planning / produce role. */
+  hosted_by_org_ids?: string[];
+  /** Orgs presenting this program. Primary attribution / naming rights. */
+  presented_by_org_ids?: string[];
+  /** Orgs contributing as sponsors of the program. */
+  sponsor_org_ids?: string[];
+  /** Optional display override, e.g. "Powered by" instead of "Hosted by". */
+  host_label?: string | null;
+  /** Optional display override, e.g. "Supported by" instead of "Presented by". */
+  presenter_label?: string | null;
   eventId?: string;
 }
 

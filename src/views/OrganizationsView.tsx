@@ -54,9 +54,48 @@ interface ModalProps {
   orgId: string | null
 }
 
+// Visual treatment for role chips in the Sponsorship surface section.
+const SURFACE_ROLE_CLASS: Record<string, string> = {
+  Host:      'bg-indigo-100 text-indigo-700',
+  Presenter: 'bg-purple-100 text-purple-700',
+  Sponsor:   'bg-gray-100 text-gray-600',
+}
+
 const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => {
-  const { organizations, addOrganization, updateOrganization } = useStore()
+  const { organizations, programs, sessions, addOrganization, updateOrganization } = useStore()
   const existing = orgId ? organizations.find(o => o.id === orgId) : null
+
+  // Compute everywhere this org appears across the event — Programs and
+  // Sessions in any of the host / presenter / sponsor roles. Read-only;
+  // editing happens in the respective entity's own modal.
+  const surface = React.useMemo(() => {
+    if (!orgId) return { programs: [], sessions: [] }
+
+    const programRows = programs
+      .map(p => {
+        const roles: string[] = []
+        if (p.hosted_by_org_ids?.includes(orgId)) roles.push('Host')
+        if (p.presented_by_org_ids?.includes(orgId)) roles.push('Presenter')
+        if (p.sponsor_org_ids?.includes(orgId)) roles.push('Sponsor')
+        return roles.length > 0 ? { id: p.id, name: p.name, roles } : null
+      })
+      .filter((r): r is { id: string; name: string; roles: string[] } => r !== null)
+
+    const sessionRows = sessions
+      .map(s => {
+        const roles: string[] = []
+        if (s.hosted_by_org_ids?.includes(orgId)) roles.push('Host')
+        if (s.presented_by_org_ids?.includes(orgId)) roles.push('Presenter')
+        if (s.organizationIds?.includes(orgId)) roles.push('Sponsor')
+        return roles.length > 0
+          ? { id: s.id, name: s.title || '(untitled)', date: s.date, roles }
+          : null
+      })
+      .filter((r): r is { id: string; name: string; date?: string; roles: string[] } => r !== null)
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+
+    return { programs: programRows, sessions: sessionRows }
+  }, [orgId, programs, sessions])
 
   const [name, setName] = useState('')
   const [tier, setTier] = useState('')
@@ -123,7 +162,7 @@ const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => 
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-lg"
+        className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b flex items-center justify-between">
@@ -205,6 +244,81 @@ const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => 
               placeholder="What this org sponsors, special arrangements, contacts, etc."
             />
           </div>
+
+          {orgId && (
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                Sponsorship surface
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                Everywhere this organization appears across the event. Read-only —
+                edit relationships in the relevant program or session.
+              </p>
+
+              {surface.programs.length === 0 && surface.sessions.length === 0 ? (
+                <p className="text-sm text-gray-500">Not attached to any programs or sessions yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {surface.programs.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-gray-700 mb-1">
+                        Programs ({surface.programs.length})
+                      </div>
+                      <div className="space-y-1">
+                        {surface.programs.map(p => (
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-2 text-sm py-1 px-2 bg-gray-50 rounded"
+                          >
+                            <span className="flex-1 truncate text-gray-800">{p.name}</span>
+                            {p.roles.map(r => (
+                              <span
+                                key={r}
+                                className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded ${SURFACE_ROLE_CLASS[r] ?? 'bg-gray-100 text-gray-600'}`}
+                              >
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {surface.sessions.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-gray-700 mb-1">
+                        Sessions ({surface.sessions.length})
+                      </div>
+                      <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                        {surface.sessions.map(s => (
+                          <div
+                            key={s.id}
+                            className="flex items-center gap-2 text-sm py-1 px-2 bg-gray-50 rounded"
+                          >
+                            <span className="flex-1 truncate text-gray-800">{s.name}</span>
+                            {s.date && (
+                              <span className="text-[10px] text-gray-500 tabular-nums whitespace-nowrap">
+                                {s.date}
+                              </span>
+                            )}
+                            {s.roles.map(r => (
+                              <span
+                                key={r}
+                                className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded ${SURFACE_ROLE_CLASS[r] ?? 'bg-gray-100 text-gray-600'}`}
+                              >
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button

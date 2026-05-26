@@ -240,10 +240,6 @@ missing-env error at runtime.
 
 Mostly polish and reach, not blockers. In rough priority order:
 
-- **Map view polish.** Untouched in the current pass; functional but doesn't
-  match the density and chip patterns the other views adopted.
-- **Programs inline editor.** Adding/removing host/presenter/sponsor orgs on
-  a program is SQL-only today. Needs a mini multi-org picker UI in Settings.
 - **Speaker headshot upload via Supabase Storage.** Today headshots are URL
   fields; nobody is going to paste 60 URLs. Sketched two paths: admin-only
   uploader (~1–2 hours) and a tokenized public link per speaker so the
@@ -288,6 +284,8 @@ is the filter panel with its single floating collapse toggle.
 **Modals.** `src/components/SessionModal.tsx` is the big one — section
 grouping for Basics / Schedule / People / Categorization / Attribution /
 Access, with multi-select pickers backed by react-select.
+`src/components/ProgramModal.tsx` is the program editor — name plus three
+multi-org pickers (Host / Presenter / Sponsor) and two label overrides.
 `src/components/ConfirmDialog.tsx` is the themed confirm modal plus the
 `useConfirm()` hook, mounted once via `ConfirmProvider` at the app root.
 Every destructive action (delete, restore, anything irreversible) routes
@@ -298,7 +296,9 @@ confirms, Esc cancels.
 `TimelineView` (resource-timeline), `ListView` (sessions grouped by date in
 tables, with track chips and gating badges), `MapView` (Mapbox + venue
 list), `SpeakersView` (grid/list with the SpeakerAvatar initials component),
-`OrganizationsView` (sponsor directory with the full cash/in-kind editor),
+`OrganizationsView` (sponsor directory with the full cash/in-kind editor
+and a read-only "Sponsorship surface" panel inside each org's modal that
+lists every program and session referencing that org),
 `SettingsView` (collapsible taxonomy sections plus the admin-only Change
 History panel that reads from `audit_log` and offers per-row Restore).
 
