@@ -24,6 +24,25 @@ export interface Speaker {
   company: string;
   bio: string;
   photoUrl: string;
+  /** Commitment state. New rows default to 'tentative' (DB-side default).
+   *  'confirmed' = committed, 'cancelled' = was confirmed then dropped. */
+  status?: 'confirmed' | 'tentative' | 'cancelled' | null;
+  /** Team-only notes. Never displayed publicly — accommodations, agency
+   *  contact, scheduling preferences, etc. */
+  notes?: string | null;
+  linkedin_url?: string | null;
+  /** X (formerly Twitter). Column name kept as twitter_url to stay
+   *  readable for anyone querying SQL — accepts x.com URLs equally. */
+  twitter_url?: string | null;
+  website_url?: string | null;
+  /** Dietary restrictions / allergies for meal planning. */
+  dietary_restrictions?: string | null;
+  /** Walk-out song name + artist, e.g., "Eye of the Tiger — Survivor".
+   *  Used by AV / emcee for stage intros. */
+  walk_out_song?: string | null;
+  /** Link to the song on Spotify (preferred for open engagement) or
+   *  another streaming service. */
+  walk_out_song_url?: string | null;
 }
 
 export interface Venue {

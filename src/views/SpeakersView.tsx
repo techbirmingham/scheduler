@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react';
+import dayjs from 'dayjs';
 import { useStore, useIsAdmin, Speaker } from '../store';
 import { useConfirm } from '../components/ConfirmDialog';
 import { findDuplicateByName } from '../utils/findDuplicateByName';
+
+// Visual styling for the speaker status chip on cards + in the modal.
+// Traffic-light palette so the three states are scannable at a glance:
+// green = go, amber = caution, red = stop / needs attention.
+const STATUS_BADGE: Record<NonNullable<Speaker['status']>, string> = {
+  confirmed: 'bg-green-100 text-green-800',
+  tentative: 'bg-amber-100 text-amber-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+const StatusBadge: React.FC<{ status?: Speaker['status'] }> = ({ status }) => {
+  if (!status) return null
+  const cls = STATUS_BADGE[status] ?? 'bg-gray-100 text-gray-700'
+  return (
+    <span className={`px-1.5 py-0.5 text-[10px] font-semibold uppercase rounded ${cls}`}>{status}</span>
+  )
+}
 
 // Renders a speaker's photo if one exists, otherwise a CSS-generated
 // initials avatar. Avoids a hardcoded external fallback URL that would
@@ -54,17 +71,26 @@ interface SpeakerModalProps {
 }
 
 const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId, onOpenExisting }) => {
-  const { speakers, addSpeaker, updateSpeaker } = useStore();
+  const { speakers, sessions, venues, sessionTypes, addSpeaker, updateSpeaker } = useStore();
   const confirm = useConfirm();
   const existingSpeaker = speakerId ? speakers.find(s => s.id === speakerId) : null;
-  
-  const [formData, setFormData] = useState<Omit<Speaker, 'id'>>({
+
+  const blankForm: Omit<Speaker, 'id'> = {
     name: '',
     title: '',
     company: '',
     bio: '',
-    photoUrl: ''
-  });
+    photoUrl: '',
+    status: 'tentative',
+    notes: '',
+    linkedin_url: '',
+    twitter_url: '',
+    website_url: '',
+    dietary_restrictions: '',
+    walk_out_song: '',
+    walk_out_song_url: '',
+  };
+  const [formData, setFormData] = useState<Omit<Speaker, 'id'>>(blankForm);
   
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -91,17 +117,20 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId,
         title: existingSpeaker.title,
         company: existingSpeaker.company,
         bio: existingSpeaker.bio,
-        photoUrl: existingSpeaker.photoUrl
+        photoUrl: existingSpeaker.photoUrl,
+        status: existingSpeaker.status ?? 'tentative',
+        notes: existingSpeaker.notes ?? '',
+        linkedin_url: existingSpeaker.linkedin_url ?? '',
+        twitter_url: existingSpeaker.twitter_url ?? '',
+        website_url: existingSpeaker.website_url ?? '',
+        dietary_restrictions: existingSpeaker.dietary_restrictions ?? '',
+        walk_out_song: existingSpeaker.walk_out_song ?? '',
+        walk_out_song_url: existingSpeaker.walk_out_song_url ?? '',
       });
     } else {
-      setFormData({
-        name: '',
-        title: '',
-        company: '',
-        bio: '',
-        photoUrl: ''
-      });
+      setFormData(blankForm);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingSpeaker]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -130,10 +159,24 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId,
       return;
     }
 
+    // Coerce empty strings to null on the optional fields so the DB stores
+    // a clean NULL rather than '' for "not set". Keeps query filters and
+    // public-display logic ("show only if not null") behaving consistently.
+    const payload: Omit<Speaker, 'id'> = {
+      ...formData,
+      notes: formData.notes?.trim() || null,
+      linkedin_url: formData.linkedin_url?.trim() || null,
+      twitter_url: formData.twitter_url?.trim() || null,
+      website_url: formData.website_url?.trim() || null,
+      dietary_restrictions: formData.dietary_restrictions?.trim() || null,
+      walk_out_song: formData.walk_out_song?.trim() || null,
+      walk_out_song_url: formData.walk_out_song_url?.trim() || null,
+    };
+
     if (speakerId) {
-      updateSpeaker(speakerId, formData);
+      updateSpeaker(speakerId, payload);
     } else {
-      addSpeaker(formData);
+      addSpeaker(payload);
     }
 
     onClose();
@@ -202,7 +245,61 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId,
                   placeholder="Enter company name"
                 />
               </div>
-              
+
+              {/* ── SESSIONS — placed up here so it's visible without
+                  scrolling past Photo URL and Bio. Edit-mode only. ─── */}
+              {speakerId && (() => {
+                const speakerSessions = sessions
+                  .filter(s => s.speakerIds?.includes(speakerId))
+                  .sort((a, b) =>
+                    (a.date || '').localeCompare(b.date || '') ||
+                    (a.startTime || '').localeCompare(b.startTime || '')
+                  );
+                return (
+                  <div className="border-t border-gray-200 pt-4">
+                    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                      Sessions ({speakerSessions.length})
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5 mb-3">
+                      Where this speaker appears. Edit a session from the Sessions or Grid view.
+                    </p>
+                    {speakerSessions.length === 0 ? (
+                      <p className="text-sm text-gray-500">Not assigned to any sessions yet.</p>
+                    ) : (
+                      <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                        {speakerSessions.map(s => {
+                          const venue = venues.find(v => v.id === s.venueId);
+                          const sessionType = sessionTypes.find(t => t.id === s.sessionTypeId);
+                          return (
+                            <div key={s.id} className="flex items-center gap-2 text-sm py-1 px-2 bg-gray-50 rounded">
+                              <span className="flex-1 truncate text-gray-800">{s.title || '(untitled)'}</span>
+                              {s.date && (
+                                <span className="text-[10px] text-gray-500 tabular-nums whitespace-nowrap">
+                                  {dayjs(s.date).format('MMM D')}
+                                </span>
+                              )}
+                              {venue && (
+                                <span className="text-[10px] text-gray-500 truncate max-w-[8rem]">
+                                  {venue.name}
+                                </span>
+                              )}
+                              {sessionType && (
+                                <span
+                                  className="px-1.5 py-0.5 text-[10px] rounded font-medium"
+                                  style={{ backgroundColor: `${sessionType.color}25`, color: sessionType.color }}
+                                >
+                                  {sessionType.name}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div>
                 <label htmlFor="photoUrl" className="block text-sm font-medium text-gray-700 mb-1">
                   Photo URL
@@ -237,6 +334,134 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId,
                   placeholder="Enter speaker bio"
                 />
               </div>
+
+              {/* ── STATUS ─────────────────────────────────────────────── */}
+              <div className="border-t border-gray-200 pt-4">
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status ?? 'tentative'}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, status: e.target.value as Speaker['status'] }))
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                >
+                  <option value="tentative">Tentative — still in conversation</option>
+                  <option value="confirmed">Confirmed — committed to speak</option>
+                  <option value="cancelled">Cancelled — was confirmed then dropped</option>
+                </select>
+              </div>
+
+              {/* ── SOCIAL & WEB ───────────────────────────────────────── */}
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                  Social & web
+                </h3>
+                <div>
+                  <label htmlFor="linkedin_url" className="block text-xs text-gray-600 mb-1">LinkedIn</label>
+                  <input
+                    type="url"
+                    id="linkedin_url"
+                    name="linkedin_url"
+                    value={formData.linkedin_url ?? ''}
+                    onChange={handleChange}
+                    placeholder="https://linkedin.com/in/…"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="twitter_url" className="block text-xs text-gray-600 mb-1">X / Twitter</label>
+                  <input
+                    type="url"
+                    id="twitter_url"
+                    name="twitter_url"
+                    value={formData.twitter_url ?? ''}
+                    onChange={handleChange}
+                    placeholder="https://x.com/…"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="website_url" className="block text-xs text-gray-600 mb-1">Website</label>
+                  <input
+                    type="url"
+                    id="website_url"
+                    name="website_url"
+                    value={formData.website_url ?? ''}
+                    onChange={handleChange}
+                    placeholder="https://…"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* ── INTERNAL — never displayed publicly ────────────────── */}
+              <div className="border-t border-gray-200 pt-4 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                  Internal
+                </h3>
+                <p className="text-xs text-gray-500 -mt-2">Visible to the team only — never displayed to attendees.</p>
+                <div>
+                  <label htmlFor="notes" className="block text-xs text-gray-600 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes ?? ''}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="Accommodations, agency contact, scheduling preferences, etc."
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dietary_restrictions" className="block text-xs text-gray-600 mb-1">
+                    Dietary restrictions
+                  </label>
+                  <input
+                    type="text"
+                    id="dietary_restrictions"
+                    name="dietary_restrictions"
+                    value={formData.dietary_restrictions ?? ''}
+                    onChange={handleChange}
+                    placeholder="e.g. vegetarian, gluten-free, severe nut allergy"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="walk_out_song" className="block text-xs text-gray-600 mb-1">
+                    Walk-out song
+                  </label>
+                  <input
+                    type="text"
+                    id="walk_out_song"
+                    name="walk_out_song"
+                    value={formData.walk_out_song ?? ''}
+                    onChange={handleChange}
+                    placeholder='e.g. "Eye of the Tiger — Survivor"'
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="walk_out_song_url" className="block text-xs text-gray-600 mb-1">
+                    Walk-out song link <span className="text-gray-400">(Spotify preferred · clean version when available)</span>
+                  </label>
+                  <input
+                    type="url"
+                    id="walk_out_song_url"
+                    name="walk_out_song_url"
+                    value={formData.walk_out_song_url ?? ''}
+                    onChange={handleChange}
+                    placeholder="https://open.spotify.com/track/…"
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+              </div>
+
             </div>
           </div>
           
@@ -393,7 +618,10 @@ export const SpeakersView: React.FC = () => {
                 <div className="p-4 flex items-center">
                   <SpeakerAvatar name={speaker.name} photoUrl={speaker.photoUrl} size="md" className="mr-4" />
                   <div>
-                    <h3 className="font-medium text-gray-900">{speaker.name}</h3>
+                    <h3 className="font-medium text-gray-900 flex items-center gap-1.5 flex-wrap">
+                      <span>{speaker.name}</span>
+                      <StatusBadge status={speaker.status} />
+                    </h3>
                     <p className="text-sm text-gray-600">
                       {speaker.title}{speaker.company ? ` at ${speaker.company}` : ''}
                     </p>
@@ -476,7 +704,10 @@ export const SpeakersView: React.FC = () => {
                       <div className="flex items-center">
                         <SpeakerAvatar name={speaker.name} photoUrl={speaker.photoUrl} size="sm" />
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{speaker.name}</div>
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-1.5 flex-wrap">
+                            <span>{speaker.name}</span>
+                            <StatusBadge status={speaker.status} />
+                          </div>
                         </div>
                       </div>
                     </td>
