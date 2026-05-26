@@ -107,21 +107,21 @@ export const ListView: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold text-gray-800">List View</h1>
-        <div className="flex space-x-3">
+        <h1 className="text-2xl font-semibold text-gray-800">Sessions</h1>
+        <div className="flex items-center space-x-3">
           <div className="relative">
             <input
               type="text"
               placeholder="Search sessions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
           </div>
-          <button 
+          <button
             onClick={handleAddClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
           >
             <Plus size={16} className="mr-1" />
             Add Session

@@ -16,6 +16,7 @@ export type {
 interface State {
   events: ConferenceEvent[]
   currentEventId: string | null
+  setCurrentEventId: (id: string) => Promise<void>
 
   speakers: Speaker[]
   venues: Venue[]
@@ -84,25 +85,9 @@ export const useStore = create<State>((set, get) => {
     return { ...payload, eventId: eid }
   }
 
-  // Seed from Supabase on startup. Events first so we know which event
-  // to scope the rest of the queries to; speakers are global and load
-  // in parallel with the scoped tables.
-  async function loadAll() {
-    const { data: events, error: eventsError } = await supabase
-      .from('events')
-      .select('*')
-      .order('startDate', { ascending: false })
-
-    if (eventsError) {
-      console.error('load events failed', eventsError)
-      return
-    }
-
-    const newest = events?.[0] ?? null
-    set({ events: events ?? [], currentEventId: newest?.id ?? null })
-    if (!newest) return
-
-    const eid = newest.id
+  // Fetch all event-scoped tables for a given event id. Speakers are
+  // global so they're fetched without a filter.
+  async function loadScopedData(eid: string) {
     const [
       { data: speakers },
       { data: venues },
@@ -138,6 +123,28 @@ export const useStore = create<State>((set, get) => {
     })
   }
 
+  // Seed from Supabase on startup. Events first so we know which event
+  // to scope the rest of the queries to. Preserves the user's currently-
+  // selected event if it still exists in the refreshed list; otherwise
+  // falls back to the newest event by startDate.
+  async function loadAll() {
+    const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .select('*')
+      .order('startDate', { ascending: false })
+
+    if (eventsError) {
+      console.error('load events failed', eventsError)
+      return
+    }
+
+    const existing = get().currentEventId
+    const stillValid = existing && events?.some(e => e.id === existing)
+    const targetId = stillValid ? existing : events?.[0]?.id ?? null
+    set({ events: events ?? [], currentEventId: targetId })
+    if (targetId) await loadScopedData(targetId)
+  }
+
   function clearAll() {
     set({
       events: [], currentEventId: null,
@@ -159,6 +166,22 @@ export const useStore = create<State>((set, get) => {
   return {
     events: [],
     currentEventId: null,
+
+    // Switch the active event. Clears stale filter selections (filter
+    // ids belong to the old event) and re-fetches all event-scoped
+    // data for the new event. Speakers are global so they don't need
+    // a refetch, but loadScopedData does it anyway for simplicity.
+    setCurrentEventId: async (id: string) => {
+      set({
+        currentEventId: id,
+        selectedFilters: {
+          venues: [], sessionTypes: [], tracks: [],
+          organizations: [], programs: [],
+          experiences: [], accessLevels: [],
+        },
+      })
+      await loadScopedData(id)
+    },
 
     // start empty—Supabase is source of truth
     speakers: [], venues: [], sessions: [], sessionTypes: [], tracks: [],

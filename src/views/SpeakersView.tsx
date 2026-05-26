@@ -295,24 +295,24 @@ export const SpeakersView: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Speakers</h1>
         
-        <div className="flex space-x-3">
+        <div className="flex items-center space-x-3">
           <div className="relative">
             <input
               type="text"
               placeholder="Search speakers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
             <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
           </div>
-          
+
           <div className="flex border border-gray-300 rounded-md overflow-hidden">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 ${
-                viewMode === 'grid' 
-                  ? 'bg-indigo-100 text-indigo-700' 
+                viewMode === 'grid'
+                  ? 'bg-indigo-100 text-indigo-700'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
@@ -321,18 +321,18 @@ export const SpeakersView: React.FC = () => {
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 ${
-                viewMode === 'list' 
-                  ? 'bg-indigo-100 text-indigo-700' 
+                viewMode === 'list'
+                  ? 'bg-indigo-100 text-indigo-700'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
               <List size={16} />
             </button>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleAddClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
           >
             <Plus size={16} className="mr-1" />
             Add Speaker

@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       aria-label={isOpen ? 'Collapse filters' : 'Expand filters'}
       title={isOpen ? 'Collapse filters' : 'Expand filters'}
       className={`fixed top-20 z-30 bg-white border border-gray-200 p-2 shadow-md transition-all hover:bg-gray-50 ${
-        isOpen ? 'left-64 -translate-x-px rounded-r-md' : 'left-0 rounded-r-md'
+        isOpen ? 'left-64 -translate-x-full rounded-l-md' : 'left-0 rounded-r-md'
       }`}
     >
       {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}

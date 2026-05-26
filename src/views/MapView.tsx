@@ -277,17 +277,17 @@ export const MapView: React.FC = () => {
     <div className="h-full flex flex-col">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Venues Map</h1>
-        <div className="flex space-x-3">
-          <button 
+        <div className="flex items-center space-x-3">
+          <button
             onClick={() => setVenueModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
           >
             <Plus size={16} className="mr-1" />
             Add Venue
           </button>
-          <button 
+          <button
             onClick={handleAddClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md flex items-center"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
           >
             <Plus size={16} className="mr-1" />
             Add Session

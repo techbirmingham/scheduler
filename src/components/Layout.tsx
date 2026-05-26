@@ -1,10 +1,11 @@
 // src/components/Layout.tsx
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
 import { NavLink, useLocation } from 'react-router-dom'
 import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
+import { EventPicker } from './EventPicker'
 
 
 
@@ -21,21 +22,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isSettingsView = location.pathname === '/settings'
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {!isMapView && !isSpeakersView && !isSettingsView && (
-        <Sidebar
-          isOpen={sidebarOpen}
-          toggleSidebar={() => setSidebarOpen(o => !o)}
-        />
-      )}
-
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="bg-white shadow z-10">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">
-              Scheduler
-            </h1>
-            <nav className="flex items-center space-x-1">
+    <div className="flex flex-col h-screen bg-gray-50">
+      <header className="bg-white shadow z-40">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <EventPicker />
+          <nav className="flex items-center space-x-1">
               <NavLink
                 to="/"
                 end
@@ -74,7 +65,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 }
               >
                 <List size={16} />
-                <span>List</span>
+                <span>Sessions</span>
               </NavLink>
               <NavLink
                 to="/map"
@@ -117,10 +108,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </NavLink>
 
          
-            </nav>
-          </div>
-        </header>
+          </nav>
+        </div>
+      </header>
 
+      <div className="flex flex-1 overflow-hidden">
+        {!isMapView && !isSpeakersView && !isSettingsView && (
+          <Sidebar
+            isOpen={sidebarOpen}
+            toggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        )}
         <main className="flex-1 overflow-auto bg-gray-50 p-4">
           {children}
         </main>

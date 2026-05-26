@@ -123,25 +123,27 @@ const resources = venues
     <div className="h-full flex flex-col">
       {/* header + Zoom buttons */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Timeline View</h1>
+        <h1 className="text-2xl font-semibold text-gray-800">Timeline View</h1>
         <div className="flex items-center space-x-2">
           <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}
-            className="p-2 bg-gray-100 rounded disabled:opacity-50"
+            title="Zoom out"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
           >
             <ZoomOut size={16}/>
           </button>
           <button
             onClick={handleZoomIn}
             disabled={zoomLevel === slotDurations.length - 1}
-            className="p-2 bg-gray-100 rounded disabled:opacity-50"
+            title="Zoom in"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
           >
             <ZoomIn size={16}/>
           </button>
           <button
             onClick={handleAddClick}
-            className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center"
+            className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
           >
             <Plus size={16} className="mr-1"/> Add Session
           </button>
