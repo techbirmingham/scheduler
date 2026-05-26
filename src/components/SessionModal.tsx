@@ -14,7 +14,8 @@ interface SessionModalProps {
 
 interface Option { label: string; value: string }
 
-// cap tag container to ~3 lines and scroll internally
+// Cap multi-select tag container to ~3 lines and scroll internally
+// so the form layout stays predictable as session metadata grows.
 const multiSelectStyles: StylesConfig<Option, true> = {
   valueContainer: base => ({
     ...base,
@@ -28,6 +29,20 @@ const multiSelectStyles: StylesConfig<Option, true> = {
     padding: '0 4px',
   }),
 }
+
+// Section heading + thin divider — used to group related fields.
+const SectionHeader: React.FC<{ title: string; description?: string }> = ({ title, description }) => (
+  <div className="md:col-span-2 border-b border-gray-200 pb-2 mb-1">
+    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">{title}</h3>
+    {description && <p className="text-xs text-gray-500 mt-0.5">{description}</p>}
+  </div>
+)
+
+const GATING_OPTIONS: Option[] = [
+  { value: 'public',           label: 'Public (anyone with appropriate badge)' },
+  { value: 'invitation_only',  label: 'Invitation only (invite list managed externally)' },
+  { value: 'private',          label: 'Private (not on public schedule)' },
+]
 
 export const SessionModal: React.FC<SessionModalProps> = ({
   isOpen, onClose, sessionId,
@@ -43,7 +58,15 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     ? sessions.find(s => s.id === sessionId) || null
     : null
 
-  const [formData, setFormData] = useState<Omit<Session,'id'>>({
+  type FormState = Omit<Session, 'id'> & {
+    hosted_by_org_ids: string[]
+    presented_by_org_ids: string[]
+    host_label: string
+    presenter_label: string
+    gating: 'public' | 'invitation_only' | 'private'
+  }
+
+  const blank: FormState = {
     title: '', description: '',
     startTime: '09:00', endTime: '10:00',
     venueId: '', date: initialDate,
@@ -51,7 +74,14 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     trackIds: [], organizationIds: [],
     programIds: [], experienceIds: [],
     accessLevelId: '',
-  })
+    hosted_by_org_ids: [],
+    presented_by_org_ids: [],
+    host_label: '',
+    presenter_label: '',
+    gating: 'public',
+  }
+
+  const [formData, setFormData] = useState<FormState>(blank)
 
   // map store items into react-select Option[]
   const toOpts = (arr: { id:string; name:string }[]): Option[] =>
@@ -59,7 +89,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
   const venueOpts = toOpts(venues)
   const speakerOpts = speakers.map(s => ({
-    label: `${s.name} (${s.company})`, value: s.id,
+    label: s.company ? `${s.name} (${s.company})` : s.name,
+    value: s.id,
   }))
   const sessionTypeOpts = toOpts(sessionTypes)
   const trackOpts = toOpts(tracks)
@@ -71,20 +102,29 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   // sync into formData when editing or opening
   useEffect(() => {
     if (existing) {
+      const ex = existing as any
+      // Normalize null/undefined to empty string so the inputs render
+      // empty instead of falling back to React's "uncontrolled" behavior
+      // (which can silently keep the previous value visible).
       setFormData({
-        title: existing.title,
-        description: existing.description,
-        startTime: existing.startTime,
-        endTime: existing.endTime,
-        venueId: existing.venueId,
-        date: existing.date,
-        speakerIds: existing.speakerIds,
-        sessionTypeId: existing.sessionTypeId,
-        trackIds: existing.trackIds,
-        organizationIds: existing.organizationIds,
-        programIds: existing.programIds,
-        experienceIds: existing.experienceIds,
-        accessLevelId: existing.accessLevelId,
+        title: existing.title ?? '',
+        description: existing.description ?? '',
+        startTime: existing.startTime ?? '',
+        endTime: existing.endTime ?? '',
+        venueId: existing.venueId ?? '',
+        date: existing.date ?? initialDate,
+        speakerIds: existing.speakerIds ?? [],
+        sessionTypeId: existing.sessionTypeId ?? '',
+        trackIds: existing.trackIds ?? [],
+        organizationIds: existing.organizationIds ?? [],
+        programIds: existing.programIds ?? [],
+        experienceIds: existing.experienceIds ?? [],
+        accessLevelId: existing.accessLevelId ?? '',
+        hosted_by_org_ids: ex.hosted_by_org_ids ?? [],
+        presented_by_org_ids: ex.presented_by_org_ids ?? [],
+        host_label: ex.host_label ?? '',
+        presenter_label: ex.presenter_label ?? '',
+        gating: ex.gating ?? 'public',
       })
     } else {
       setFormData(fd => ({
@@ -111,29 +151,28 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, onClose])
 
-  const handleChange = (
-    v:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLTextAreaElement>
-      | SingleValue<Option>
-      | MultiValue<Option>,
-    field: keyof Omit<Session,'id'>
-  ) => {
-    if (Array.isArray(v)) {
-      setFormData(fd => ({ ...fd, [field]: v.map(o => o.value) }))
-    } else if ('value' in (v as any)) {
-      setFormData(fd => ({ ...fd, [field]: (v as SingleValue<Option>)!.value }))
-    } else {
-      const tgt = v.target as HTMLInputElement
-      setFormData(fd => ({ ...fd, [field]: tgt.value }))
-    }
+  const updateField = <K extends keyof FormState>(field: K, value: FormState[K]) => {
+    setFormData(fd => ({ ...fd, [field]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    // Normalize empty strings to null so the DB stores NULL rather than ''.
+    // - Label fields use NULL as the "use default label" signal.
+    // - Empty endTime stays NULL rather than being silently set to a value.
+    // - Empty venue/type/access stay NULL rather than ''.
+    const payload = {
+      ...formData,
+      endTime: formData.endTime || null,
+      venueId: formData.venueId || null,
+      sessionTypeId: formData.sessionTypeId || null,
+      accessLevelId: formData.accessLevelId || null,
+      host_label: formData.host_label.trim() || null,
+      presenter_label: formData.presenter_label.trim() || null,
+    } as any
     sessionId
-      ? updateSession(sessionId, formData)
-      : addSession(formData)
+      ? updateSession(sessionId, payload)
+      : addSession(payload)
     onClose()
   }
 
@@ -165,18 +204,19 @@ export const SessionModal: React.FC<SessionModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-14rem)]">
-          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-10rem)]">
+          <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 
-            {/* Title */}
+            {/* ─── BASICS ──────────────────────────────────────────────── */}
+            <SectionHeader title="Basics" />
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Session Title
               </label>
               <input
-                name="title"
                 value={formData.title}
-                onChange={e => handleChange(e, 'title')}
+                onChange={e => updateField('title', e.target.value)}
                 required
                 className="w-full p-2 border border-gray-300 rounded-md"
                 placeholder="Enter session title"
@@ -184,191 +224,229 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               />
             </div>
 
-            {/* Description (2 rows) */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
               <textarea
-                name="description"
                 value={formData.description}
-                onChange={e => handleChange(e, 'description')}
-                rows={1}
+                onChange={e => updateField('description', e.target.value)}
+                rows={3}
                 className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
 
-            {/* Speakers (full width) */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Speakers
-              </label>
-              <Select
-                options={speakerOpts}
-                isMulti
-                value={speakerOpts.filter(o =>
-                  formData.speakerIds.includes(o.value)
-                )}
-                onChange={v => handleChange(v as MultiValue<Option>, 'speakerIds')}
-                styles={multiSelectStyles}
-                className="react-select-container"
-              />
-            </div>
+            {/* ─── SCHEDULE & VENUE ────────────────────────────────────── */}
+            <SectionHeader title="Schedule & Venue" />
 
-            {/* Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
               <input
                 type="date"
-                name="date"
                 value={formData.date}
-                onChange={e => handleChange(e, 'date')}
+                onChange={e => updateField('date', e.target.value)}
                 required
                 className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
 
-            {/* Venue */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Venue
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Venue</label>
               <Select
                 options={venueOpts}
                 value={venueOpts.find(o => o.value===formData.venueId) || null}
-                onChange={v => handleChange(v as SingleValue<Option>, 'venueId')}
-                className="react-select-container"
+                onChange={v => updateField('venueId', (v as SingleValue<Option>)?.value ?? '')}
+                isClearable
               />
             </div>
 
-            {/* Times */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input
                 type="time"
-                name="startTime"
                 value={formData.startTime}
-                onChange={e => handleChange(e, 'startTime')}
+                onChange={e => updateField('startTime', e.target.value)}
                 required
-                className="w-full p-2 border	border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Time
-              </label>
-              <input
-                type="time"
-                name="endTime"
-                value={formData.endTime}
-                onChange={e => handleChange(e, 'endTime')}
-                required
-                className="w-full p-2 border	border-gray-300 rounded-md"
+                className="w-full p-2 border border-gray-300 rounded-md"
               />
             </div>
 
-            {/* Session Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Session Type
+                End Time <span className="text-gray-400 font-normal">(optional)</span>
               </label>
+              <input
+                type="time"
+                value={formData.endTime}
+                onChange={e => updateField('endTime', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+              />
+              {formData.endTime && formData.startTime && formData.endTime < formData.startTime && (
+                <p className="text-xs text-amber-700 mt-1">
+                  End time is before start time — session will appear to span overnight (+1 day).
+                </p>
+              )}
+            </div>
+
+            {/* ─── PEOPLE ──────────────────────────────────────────────── */}
+            <SectionHeader title="People" />
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Speakers</label>
+              <Select
+                options={speakerOpts}
+                isMulti
+                value={speakerOpts.filter(o => formData.speakerIds.includes(o.value))}
+                onChange={v => updateField('speakerIds', (v as MultiValue<Option>).map(o => o.value))}
+                styles={multiSelectStyles}
+              />
+            </div>
+
+            {/* ─── CATEGORIZATION ──────────────────────────────────────── */}
+            <SectionHeader title="Categorization" description="How this session shows up in filtering and color-coding." />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Session Type</label>
               <Select
                 options={sessionTypeOpts}
                 value={sessionTypeOpts.find(o => o.value===formData.sessionTypeId) || null}
-                onChange={v => handleChange(v as SingleValue<Option>, 'sessionTypeId')}
-                className="react-select-container"
+                onChange={v => updateField('sessionTypeId', (v as SingleValue<Option>)?.value ?? '')}
+                isClearable
               />
             </div>
 
-            {/* Access Level */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Access Level
-              </label>
-              <Select
-                options={accessOpts}
-                value={accessOpts.find(o => o.value===formData.accessLevelId) || null}
-                onChange={v => handleChange(v as SingleValue<Option>, 'accessLevelId')}
-                className="react-select-container"
-              />
-            </div>
-
-            {/* Tracks (multi) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tracks
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tracks</label>
               <Select
                 options={trackOpts}
                 isMulti
                 value={trackOpts.filter(o => formData.trackIds.includes(o.value))}
-                onChange={v => handleChange(v as MultiValue<Option>, 'trackIds')}
+                onChange={v => updateField('trackIds', (v as MultiValue<Option>).map(o => o.value))}
                 styles={multiSelectStyles}
-                className="react-select-container"
               />
             </div>
 
-            {/* Organizations (multi) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Programs</label>
+              <Select
+                options={progOpts}
+                isMulti
+                value={progOpts.filter(o => formData.programIds.includes(o.value))}
+                onChange={v => updateField('programIds', (v as MultiValue<Option>).map(o => o.value))}
+                styles={multiSelectStyles}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Experiences</label>
+              <Select
+                options={expOpts}
+                isMulti
+                value={expOpts.filter(o => formData.experienceIds.includes(o.value))}
+                onChange={v => updateField('experienceIds', (v as MultiValue<Option>).map(o => o.value))}
+                styles={multiSelectStyles}
+              />
+            </div>
+
+            {/* ─── ATTRIBUTION ─────────────────────────────────────────── */}
+            <SectionHeader
+              title="Attribution"
+              description="Orgs that lead, present, or sponsor this session. Tier (Iron / Carbon / etc.) is managed on the Org itself; the role here is contextual."
+            />
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hosted By</label>
+              <Select
+                options={orgOpts}
+                isMulti
+                value={orgOpts.filter(o => formData.hosted_by_org_ids.includes(o.value))}
+                onChange={v => updateField('hosted_by_org_ids', (v as MultiValue<Option>).map(o => o.value))}
+                styles={multiSelectStyles}
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Organizations
+                Host Label <span className="text-gray-400 font-normal">(optional override)</span>
+              </label>
+              <input
+                value={formData.host_label}
+                onChange={e => updateField('host_label', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder='Default: "Hosted by"'
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Presented By</label>
+              <Select
+                options={orgOpts}
+                isMulti
+                value={orgOpts.filter(o => formData.presented_by_org_ids.includes(o.value))}
+                onChange={v => updateField('presented_by_org_ids', (v as MultiValue<Option>).map(o => o.value))}
+                styles={multiSelectStyles}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Presenter Label <span className="text-gray-400 font-normal">(optional override)</span>
+              </label>
+              <input
+                value={formData.presenter_label}
+                onChange={e => updateField('presenter_label', e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                placeholder='Default: "Presented by"'
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Other Sponsors <span className="text-gray-400 font-normal">(everyone else contributing)</span>
               </label>
               <Select
                 options={orgOpts}
                 isMulti
                 value={orgOpts.filter(o => formData.organizationIds.includes(o.value))}
-                onChange={v => handleChange(v as MultiValue<Option>, 'organizationIds')}
+                onChange={v => updateField('organizationIds', (v as MultiValue<Option>).map(o => o.value))}
                 styles={multiSelectStyles}
-                className="react-select-container"
               />
             </div>
 
-            {/* Programs (multi) */}
+            {/* ─── ACCESS ──────────────────────────────────────────────── */}
+            <SectionHeader title="Access" />
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Programs
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Access Level</label>
               <Select
-                options={progOpts}
-                isMulti
-                value={progOpts.filter(o => formData.programIds.includes(o.value))}
-                onChange={v => handleChange(v as MultiValue<Option>, 'programIds')}
-                styles={multiSelectStyles}
-                className="react-select-container"
+                options={accessOpts}
+                value={accessOpts.find(o => o.value===formData.accessLevelId) || null}
+                onChange={v => updateField('accessLevelId', (v as SingleValue<Option>)?.value ?? '')}
+                isClearable
               />
             </div>
 
-            {/* Experiences (multi) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Experiences
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
               <Select
-                options={expOpts}
-                isMulti
-                value={expOpts.filter(o => formData.experienceIds.includes(o.value))}
-                onChange={v => handleChange(v as MultiValue<Option>, 'experienceIds')}
-                styles={multiSelectStyles}
-                className="react-select-container"
+                options={GATING_OPTIONS}
+                value={GATING_OPTIONS.find(o => o.value === formData.gating) || GATING_OPTIONS[0]}
+                onChange={v => updateField('gating', (v as SingleValue<Option>)?.value as FormState['gating'] ?? 'public')}
               />
             </div>
           </div>
 
           {/* footer */}
           <div className="px-6 py-4 bg-gray-50 border-t flex justify-between">
-            {existing && (
+            {existing ? (
               <button
                 type="button"
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center"
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 flex items-center"
               >
                 <Trash2 size={16} className="mr-2" /> Delete Session
               </button>
-            )}
+            ) : <div />}
             <div className="flex space-x-3">
               <button
                 type="button"

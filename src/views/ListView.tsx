@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs' // added to fix the UTC issue where the list date header was a day behind
-import { ChevronUp, ChevronDown, Plus, Search, Edit, Trash, Lock } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Plus, Search, Edit, Trash, Lock } from 'lucide-react';
 import { useStore, Session } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { getInitialDate } from '../utils/dates';
@@ -113,6 +113,10 @@ export const ListView: React.FC = () => {
     if (e) return `Until ${e}`
     return ''
   }
+  // True when endTime is set and earlier than startTime — visualizes
+  // as a "+1" badge so accidental overnight ranges are obvious.
+  const isOvernight = (start?: string | null, end?: string | null) =>
+    !!(start && end && end < start)
 
   const getVenueName = (venueId: string) => venues.find(v => v.id === venueId)?.name || 'No venue';
   const getSessionTypeName = (typeId: string) => sessionTypes.find(t => t.id === typeId)?.name || 'No type';
@@ -181,18 +185,28 @@ export const ListView: React.FC = () => {
                     </colgroup>
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('title')}>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => requestSort('title')}>
                           <div className="flex items-center">
                             Title
-                            {getSortDirection('title') === 'ascending' && <ChevronUp size={14} className="ml-1" />}
-                            {getSortDirection('title') === 'descending' && <ChevronDown size={14} className="ml-1" />}
+                            {getSortDirection('title') === 'ascending' ? (
+                              <ChevronUp size={14} className="ml-1 text-gray-700" />
+                            ) : getSortDirection('title') === 'descending' ? (
+                              <ChevronDown size={14} className="ml-1 text-gray-700" />
+                            ) : (
+                              <ChevronsUpDown size={14} className="ml-1 text-gray-300 group-hover:text-gray-500 transition" />
+                            )}
                           </div>
                         </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('startTime')}>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group" onClick={() => requestSort('startTime')}>
                           <div className="flex items-center">
                             Time
-                            {getSortDirection('startTime') === 'ascending' && <ChevronUp size={14} className="ml-1" />}
-                            {getSortDirection('startTime') === 'descending' && <ChevronDown size={14} className="ml-1" />}
+                            {getSortDirection('startTime') === 'ascending' ? (
+                              <ChevronUp size={14} className="ml-1 text-gray-700" />
+                            ) : getSortDirection('startTime') === 'descending' ? (
+                              <ChevronDown size={14} className="ml-1 text-gray-700" />
+                            ) : (
+                              <ChevronsUpDown size={14} className="ml-1 text-gray-300 group-hover:text-gray-500 transition" />
+                            )}
                           </div>
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Venue</th>
@@ -216,14 +230,19 @@ export const ListView: React.FC = () => {
                             style={{ boxShadow: `inset 4px 0 0 ${accent}` }}
                           >
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center flex-wrap gap-1.5">
                                 <div className="text-sm font-medium text-gray-900">{session.title}</div>
-                                {gating !== 'public' && (
-                                  <Lock
-                                    size={12}
-                                    className="text-gray-400 flex-shrink-0"
-                                    aria-label={gating === 'invitation_only' ? 'Invitation only' : 'Private'}
-                                  />
+                                {gating === 'invitation_only' && (
+                                  <span className="px-1.5 py-0.5 inline-flex items-center gap-1 text-[10px] font-medium uppercase rounded bg-amber-100 text-amber-800">
+                                    <Lock size={10} />
+                                    Invite Only
+                                  </span>
+                                )}
+                                {gating === 'private' && (
+                                  <span className="px-1.5 py-0.5 inline-flex items-center gap-1 text-[10px] font-semibold uppercase rounded bg-red-700 text-white">
+                                    <Lock size={10} />
+                                    Private
+                                  </span>
                                 )}
                                 {isVIP && (
                                   <span className="px-1.5 py-0.5 inline-flex text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-800">
@@ -236,10 +255,26 @@ export const ListView: React.FC = () => {
                               )}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 tabular-nums">
-                              {formatTimeRange(session.startTime, session.endTime)}
+                              <span className="inline-flex items-center gap-1">
+                                {formatTimeRange(session.startTime, session.endTime)}
+                                {isOvernight(session.startTime, session.endTime) && (
+                                  <span
+                                    className="px-1 py-0 text-[10px] font-medium rounded bg-amber-100 text-amber-800"
+                                    title="Session ends on the next day"
+                                  >
+                                    +1
+                                  </span>
+                                )}
+                              </span>
                             </td>
-                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                              {getVenueName(session.venueId)}
+                            <td className="px-4 py-3 whitespace-nowrap text-sm">
+                              {session.venueId ? (
+                                <span className="text-gray-600">{getVenueName(session.venueId)}</span>
+                              ) : (
+                                <span className="px-1.5 py-0.5 inline-flex text-[10px] font-medium uppercase rounded bg-red-50 text-red-700 border border-red-200">
+                                  No venue
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
                               {session.sessionTypeId && (

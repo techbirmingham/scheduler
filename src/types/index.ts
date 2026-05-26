@@ -45,10 +45,21 @@ export interface Session {
   speakerIds: string[];
   sessionTypeId: string;
   trackIds: string[];
+  /** Sponsors of the session, beyond the dedicated host/presenter roles. */
   organizationIds: string[];
   programIds: string[];
   experienceIds: string[];
   accessLevelId: string;
+  /** Orgs that host this session (lead planning / produce it). */
+  hosted_by_org_ids?: string[];
+  /** Orgs that present this session (primary attribution / naming rights). */
+  presented_by_org_ids?: string[];
+  /** Optional display override, e.g. "Powered by" instead of "Hosted by". */
+  host_label?: string | null;
+  /** Optional display override, e.g. "Supported by" instead of "Presented by". */
+  presenter_label?: string | null;
+  /** 'public' (default), 'invitation_only', or 'private'. */
+  gating?: 'public' | 'invitation_only' | 'private';
   eventId?: string;
 }
 
