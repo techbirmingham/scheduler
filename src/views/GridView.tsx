@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar, { EventDropArg, EventResizeDoneArg } from '@fullcalendar/react';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Plus, ZoomIn, ZoomOut, Eye, EyeOff } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Eye, EyeOff, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
-import { DateNavigator } from '../components/DateNavigator';
+import { DateTabs } from '../components/DateTabs';
 import { getInitialDate } from '../utils/dates';
 
 export const GridView: React.FC = () => {
@@ -194,12 +194,25 @@ const closeModal = () => {
         </div>
       </div>
 
-      <DateNavigator
-        date={selectedDate}
-        onDateChange={setSelectedDate}
-        minDate={currentEvent?.startDate}
-        maxDate={currentEvent?.endDate}
-      />
+      <div className="flex items-center gap-3 flex-wrap">
+        <DateTabs
+          startDate={currentEvent?.startDate}
+          endDate={currentEvent?.endDate}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+        {/* Picker stays around for jumping outside the event range (e.g.,
+            setup-day rehearsals). No min/max so it accepts any date. */}
+        <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 rounded-md px-2 py-1 hover:border-gray-300 transition cursor-pointer">
+          <Calendar size={14} />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="text-xs bg-transparent border-none focus:outline-none p-0"
+          />
+        </label>
+      </div>
 
       <div className="flex-1 bg-white rounded-lg shadow overflow-hidden mt-4">
         <FullCalendar
