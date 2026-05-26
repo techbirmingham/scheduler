@@ -22,8 +22,12 @@ interface FilterSectionProps {
   onEditItem: (id: string, newName: string) => void
   onDeleteItem: (id: string) => void
   onSelectItem: (id: string) => void
+  /** Set this category's filter to just this id (used by the "Only" link). */
+  onSelectOnlyItem: (id: string) => void
   selectedItems: string[]
   canDelete: boolean
+  isOpen: boolean
+  onToggleOpen: () => void
 }
 
 const FilterSection: React.FC<FilterSectionProps> = ({
@@ -33,11 +37,13 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   onEditItem,
   onDeleteItem,
   onSelectItem,
+  onSelectOnlyItem,
   selectedItems,
-  canDelete
+  canDelete,
+  isOpen,
+  onToggleOpen,
 }) => {
   const confirm = useConfirm()
-  const [isOpen, setIsOpen] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [isAddingNew, setIsAddingNew] = useState(false)
@@ -61,7 +67,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
     <div className="mb-4">
       <div
         className="flex items-center mb-2 cursor-pointer"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onToggleOpen}
       >
         {isOpen ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
         <h3 className="ml-1 font-medium text-gray-700">{title}</h3>
@@ -110,6 +116,16 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                     </label>
                   </div>
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        onSelectOnlyItem(item.id)
+                      }}
+                      className="px-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-800"
+                      title={`Show only ${item.name}`}
+                    >
+                      Only
+                    </button>
                     <button
                       onClick={() => startEdit(item.id, item.name)}
                       className="p-1 text-gray-400 hover:text-gray-600"
@@ -165,6 +181,19 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   )
 }
 
+// Titles used as keys for the per-section open/closed state, kept in one
+// place so the Collapse/Expand-all toggle stays in sync with the sections
+// actually rendered below.
+const SECTION_TITLES = [
+  'Venues',
+  'Session Types',
+  'Tracks',
+  'Partner Organizations',
+  'Programs',
+  'Experiences',
+  'Access Levels',
+] as const
+
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   toggleSidebar
@@ -179,6 +208,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     accessLevels,
     selectedFilters,
     toggleFilter,
+    selectOnlyFilter,
+    clearFilters,
     addVenue,
     updateVenue,
     deleteVenue,
@@ -203,16 +234,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } = useStore()
   const isAdmin = useIsAdmin()
 
+  // Per-section open state lives here (not inside FilterSection) so a single
+  // toggle can flip all 7 sections at once. Sections default to open.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
+  const isSectionOpen = (title: string) => openSections[title] ?? true
+  const toggleSection = (title: string) =>
+    setOpenSections(s => ({ ...s, [title]: !isSectionOpen(title) }))
+  const allOpen = SECTION_TITLES.every(t => isSectionOpen(t))
+  const toggleAll = () => {
+    const next = !allOpen
+    setOpenSections(SECTION_TITLES.reduce((acc, t) => ({ ...acc, [t]: next }), {}))
+  }
+
+  // Count every selected filter across all categories so the header can
+  // show "N active · Clear" when there's something to clear.
+  const totalActive = Object.values(selectedFilters).reduce(
+    (sum, arr) => sum + arr.length,
+    0,
+  )
+
   // Single floating toggle button — same vertical position in both states.
   // When open: sits flush against the sidebar's right edge.
   // When closed: sits flush against the viewport's left edge.
+  // The `left-*` class must match the sidebar's width below so the button
+  // stays anchored to the edge.
   const ToggleHandle = (
     <button
       onClick={toggleSidebar}
       aria-label={isOpen ? 'Collapse filters' : 'Expand filters'}
       title={isOpen ? 'Collapse filters' : 'Expand filters'}
       className={`fixed top-20 z-30 bg-white border border-gray-200 p-2 shadow-md transition-all hover:bg-gray-50 ${
-        isOpen ? 'left-64 -translate-x-full rounded-l-md' : 'left-0 rounded-r-md'
+        isOpen ? 'left-80 -translate-x-full rounded-l-md' : 'left-0 rounded-r-md'
       }`}
     >
       {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
@@ -226,9 +278,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {ToggleHandle}
-      <div className="flex flex-col h-full w-64 bg-white border-r overflow-y-auto">
+      <div className="flex flex-col h-full w-80 bg-white border-r overflow-y-auto">
         <div className="p-4 border-b">
           <h2 className="font-medium text-gray-800">Filters</h2>
+          {/* Meta row — always rendered so the filter list below doesn't
+              jitter when the active count changes. Clear is greyed out
+              when there's nothing to clear; Collapse/Expand all is always
+              active. Text labels (instead of icons) because the previous
+              icon sat behind the floating sidebar-collapse handle. */}
+          <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+            <span className={totalActive > 0 ? 'text-gray-500' : 'text-gray-400'}>
+              {totalActive} active
+            </span>
+            <span className="text-gray-300">·</span>
+            <button
+              onClick={() => clearFilters()}
+              disabled={totalActive === 0}
+              className={`font-medium ${
+                totalActive > 0
+                  ? 'text-indigo-600 hover:text-indigo-800 cursor-pointer'
+                  : 'text-gray-300 cursor-default'
+              }`}
+            >
+              Clear
+            </button>
+            <span className="text-gray-300">·</span>
+            <button
+              onClick={toggleAll}
+              className="font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              {allOpen ? 'Collapse all' : 'Expand all'}
+            </button>
+          </div>
         </div>
       <div className="flex-1 p-4 overflow-y-auto">
         <FilterSection
@@ -238,8 +319,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateVenue(id, { name })}
           onDeleteItem={deleteVenue}
           onSelectItem={id => toggleFilter('venues', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('venues', id)}
           selectedItems={selectedFilters.venues}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Venues')}
+          onToggleOpen={() => toggleSection('Venues')}
         />
 
         <FilterSection
@@ -249,8 +333,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateSessionType(id, { name })}
           onDeleteItem={deleteSessionType}
           onSelectItem={id => toggleFilter('sessionTypes', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('sessionTypes', id)}
           selectedItems={selectedFilters.sessionTypes}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Session Types')}
+          onToggleOpen={() => toggleSection('Session Types')}
         />
 
         <FilterSection
@@ -260,8 +347,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateTrack(id, { name })}
           onDeleteItem={deleteTrack}
           onSelectItem={id => toggleFilter('tracks', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('tracks', id)}
           selectedItems={selectedFilters.tracks}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Tracks')}
+          onToggleOpen={() => toggleSection('Tracks')}
         />
 
         <FilterSection
@@ -271,8 +361,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateOrganization(id, { name })}
           onDeleteItem={deleteOrganization}
           onSelectItem={id => toggleFilter('organizations', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('organizations', id)}
           selectedItems={selectedFilters.organizations}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Partner Organizations')}
+          onToggleOpen={() => toggleSection('Partner Organizations')}
         />
 
         <FilterSection
@@ -282,8 +375,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateProgram(id, { name })}
           onDeleteItem={deleteProgram}
           onSelectItem={id => toggleFilter('programs', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('programs', id)}
           selectedItems={selectedFilters.programs}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Programs')}
+          onToggleOpen={() => toggleSection('Programs')}
         />
 
         <FilterSection
@@ -293,8 +389,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateExperience(id, { name })}
           onDeleteItem={deleteExperience}
           onSelectItem={id => toggleFilter('experiences', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('experiences', id)}
           selectedItems={selectedFilters.experiences}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Experiences')}
+          onToggleOpen={() => toggleSection('Experiences')}
         />
 
         <FilterSection
@@ -304,8 +403,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onEditItem={(id, name) => updateAccessLevel(id, { name })}
           onDeleteItem={deleteAccessLevel}
           onSelectItem={id => toggleFilter('accessLevels', id)}
+          onSelectOnlyItem={id => selectOnlyFilter('accessLevels', id)}
           selectedItems={selectedFilters.accessLevels}
           canDelete={isAdmin}
+          isOpen={isSectionOpen('Access Levels')}
+          onToggleOpen={() => toggleSection('Access Levels')}
         />
       </div>
       </div>

@@ -76,6 +76,9 @@ interface State {
   deleteAccessLevel: (id: string) => Promise<void>
 
   toggleFilter: (filterType: keyof State['selectedFilters'], id: string) => void
+  /** Set the filter for `filterType` to just this id, leaving other
+   *  categories' filters untouched. Powers the "Only" hover link. */
+  selectOnlyFilter: (filterType: keyof State['selectedFilters'], id: string) => void
   clearFilters: () => void
 
   // Audit log + restore. auditLog is fetched on demand (not on initial load)
@@ -535,6 +538,11 @@ export const useStore = create<State>((set, get) => {
         const next = curr.includes(id) ? curr.filter(x => x !== id) : [...curr, id]
         return { selectedFilters: { ...s.selectedFilters, [filterType]: next } }
       })
+    },
+    selectOnlyFilter: (filterType, id) => {
+      set(s => ({
+        selectedFilters: { ...s.selectedFilters, [filterType]: [id] },
+      }))
     },
     clearFilters: () => {
       set(() => ({

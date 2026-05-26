@@ -249,8 +249,6 @@ Mostly polish and reach, not blockers. In rough priority order:
   and then triggers a re-fetch.
 - **Drag/drop reordering** of taxonomy items, especially Tracks (color
   ordering matters). Needs a library like `dnd-kit`.
-- **Filter sidebar "Only" link** on hover, so power users can solo-select
-  one venue or track without unchecking everything else.
 - **Mobile responsiveness.** The Grid and Timeline don't work at narrow
   widths; the rest mostly does. Needs a mobile-first pass.
 - **Old `organizations.in_kind` boolean** can be dropped once we verify
