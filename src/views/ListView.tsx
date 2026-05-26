@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import dayjs from 'dayjs' // added to fix the UTC issue where the list date header was a day behind
-import { ChevronUp, ChevronDown, Plus, Search, Edit, Trash } from 'lucide-react';
+import { ChevronUp, ChevronDown, Plus, Search, Edit, Trash, Lock } from 'lucide-react';
 import { useStore, Session } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { getInitialDate } from '../utils/dates';
 
 export const ListView: React.FC = () => {
-  const { sessions, venues, speakers, sessionTypes, tracks, selectedFilters, deleteSession, events, currentEventId } = useStore();
+  const { sessions, venues, speakers, sessionTypes, tracks, accessLevels, selectedFilters, deleteSession, events, currentEventId } = useStore();
   const currentEvent = events.find(e => e.id === currentEventId);
   
   const [modalOpen, setModalOpen] = useState(false);
@@ -99,10 +99,30 @@ export const ListView: React.FC = () => {
     return dayjs(dateString).format('dddd, MMMM D, YYYY')
   };
 
+  // Format "08:00" → "8:00 AM", "16:30" → "4:30 PM". Returns ''
+  // for falsy input so we can render time ranges robustly.
+  const formatTime = (t: string | undefined | null) => {
+    if (!t) return ''
+    return dayjs(`2000-01-01T${t}`).format('h:mm A')
+  }
+  const formatTimeRange = (start: string | undefined | null, end: string | undefined | null) => {
+    const s = formatTime(start)
+    const e = formatTime(end)
+    if (s && e) return `${s} – ${e}`
+    if (s) return s
+    if (e) return `Until ${e}`
+    return ''
+  }
+
   const getVenueName = (venueId: string) => venues.find(v => v.id === venueId)?.name || 'No venue';
   const getSessionTypeName = (typeId: string) => sessionTypes.find(t => t.id === typeId)?.name || 'No type';
   const getSpeakerNames = (ids: string[]) => ids.map(id => speakers.find(s => s.id === id)?.name).filter(Boolean).join(', ') || 'No speakers';
-  const getTrackNames = (ids: string[]) => ids.map(id => tracks.find(t => t.id === id)?.name).filter(Boolean).join(', ') || 'No tracks';
+  const getAccessLevelName = (id: string) => accessLevels.find(a => a.id === id)?.name || '';
+  // First track's color, used for the left-border accent on each row.
+  const getRowAccent = (trackIds: string[]) => {
+    if (!trackIds.length) return '#e5e7eb' // gray-200 fallback
+    return tracks.find(t => t.id === trackIds[0])?.color || '#6366f1'
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -148,81 +168,127 @@ export const ListView: React.FC = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 table-fixed">
+                    {/* Fixed widths so columns align across all per-date tables. */}
+                    <colgroup>
+                      <col style={{ width: '26%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '15%' }} />
+                      <col style={{ width: '5%'  }} />
+                    </colgroup>
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('title')}>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('title')}>
                           <div className="flex items-center">
                             Title
                             {getSortDirection('title') === 'ascending' && <ChevronUp size={14} className="ml-1" />}
                             {getSortDirection('title') === 'descending' && <ChevronDown size={14} className="ml-1" />}
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('startTime')}>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('startTime')}>
                           <div className="flex items-center">
                             Time
                             {getSortDirection('startTime') === 'ascending' && <ChevronUp size={14} className="ml-1" />}
                             {getSortDirection('startTime') === 'descending' && <ChevronDown size={14} className="ml-1" />}
                           </div>
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Venue</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Speakers</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tracks</th>
-                        <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Venue</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Speakers</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tracks</th>
+                        <th className="relative px-4 py-2"><span className="sr-only">Actions</span></th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {sessionsByDate[date].map(session => (
-                        console.log('New session object:', session) ||
-                        <tr 
-                          key={session.id} 
-                          onClick={() => handleRowClick(session.id)}
-                          className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{session.title}</div>
-                            <div className="text-sm text-gray-500 truncate max-w-xs">{session.description}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {session.startTime} - {session.endTime}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getVenueName(session.venueId)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {session.sessionTypeId && (
-                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                                {getSessionTypeName(session.sessionTypeId)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getSpeakerNames(session.speakerIds)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {getTrackNames(session.trackIds)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                onClick={(e) => handleEditClick(e, session.id)}
-                                className="text-indigo-600 hover:text-indigo-900"
-                                title="Edit session"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteClick(e, session.id)}
-                                className="text-red-600 hover:text-red-900"
-                                title="Delete session"
-                              >
-                                <Trash size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {sessionsByDate[date].map(session => {
+                        const accent = getRowAccent(session.trackIds)
+                        const accessName = getAccessLevelName(session.accessLevelId)
+                        const isVIP = accessName === 'VIP'
+                        const gating = (session as any).gating || 'public'
+                        return (
+                          <tr
+                            key={session.id}
+                            onClick={() => handleRowClick(session.id)}
+                            className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                            style={{ boxShadow: `inset 4px 0 0 ${accent}` }}
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-medium text-gray-900">{session.title}</div>
+                                {gating !== 'public' && (
+                                  <Lock
+                                    size={12}
+                                    className="text-gray-400 flex-shrink-0"
+                                    aria-label={gating === 'invitation_only' ? 'Invitation only' : 'Private'}
+                                  />
+                                )}
+                                {isVIP && (
+                                  <span className="px-1.5 py-0.5 inline-flex text-[10px] font-bold uppercase rounded bg-amber-100 text-amber-800">
+                                    VIP
+                                  </span>
+                                )}
+                              </div>
+                              {session.description && (
+                                <div className="text-xs text-gray-500 truncate max-w-md mt-0.5">{session.description}</div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 tabular-nums">
+                              {formatTimeRange(session.startTime, session.endTime)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                              {getVenueName(session.venueId)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {session.sessionTypeId && (
+                                <span className="px-2 py-0.5 inline-flex text-xs font-medium rounded border border-gray-200 bg-gray-50 text-gray-700">
+                                  {getSessionTypeName(session.sessionTypeId)}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
+                              {getSpeakerNames(session.speakerIds)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-1">
+                                {session.trackIds.map(id => {
+                                  const track = tracks.find(t => t.id === id)
+                                  if (!track) return null
+                                  return (
+                                    <span
+                                      key={id}
+                                      className="px-2 py-0.5 inline-flex text-xs font-medium rounded-full text-white whitespace-nowrap"
+                                      style={{ backgroundColor: track.color || '#6366f1' }}
+                                    >
+                                      {track.name}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={(e) => handleEditClick(e, session.id)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Edit session"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteClick(e, session.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Delete session"
+                                >
+                                  <Trash size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
