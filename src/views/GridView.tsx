@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar, { EventDropArg, EventResizeDoneArg } from '@fullcalendar/react';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Plus, ZoomIn, ZoomOut, Eye, EyeOff, Calendar } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Eye, EyeOff, Calendar, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
 import { DateTabs } from '../components/DateTabs';
+import { SessionTooltip, computeTooltipPosition, type SessionTooltipState } from '../components/SessionTooltip';
 import { getInitialDate } from '../utils/dates';
 
 export const GridView: React.FC = () => {
@@ -19,11 +20,30 @@ export const GridView: React.FC = () => {
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);
   const [hideEmptyVenues, setHideEmptyVenues] = useState(false);
+  const [tooltipState, setTooltipState] = useState<SessionTooltipState | null>(null);
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
     if (api) api.gotoDate(selectedDate);
   }, [selectedDate]);
+
+  // Snap selectedDate into the event range once the event loads. The
+  // initial useState value can fall back to TODAY (when store is empty
+  // on first mount) — and FullCalendar's `initialDate` is only honored
+  // on first mount, so without this the calendar gets stranded on
+  // today, showing the empty grid + yellow "today" column highlight.
+  useEffect(() => {
+    if (!currentEvent?.startDate) return;
+    const inRange =
+      selectedDate >= currentEvent.startDate &&
+      (!currentEvent.endDate || selectedDate <= currentEvent.endDate);
+    if (!inRange) {
+      setSelectedDate(getInitialDate(sessions, currentEvent.startDate));
+    }
+    // sessions intentionally omitted from deps — once the calendar is
+    // in range we don't want it bouncing on every store refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEvent?.startDate, currentEvent?.endDate]);
 
 // 1) Define available slot durations (from longest to shortest)
 const slotDurations = [
@@ -38,7 +58,11 @@ const slotDurations = [
 ];
 
 // 2) Your zoom state
-const [zoomLevel, setZoomLevel] = useState(3)  
+// Default to index 4 ('00:20:00') — 20-min slots give more vertical
+// density than 30-min and use the page's available height better.
+const DEFAULT_ZOOM = 4
+const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM)
+const handleZoomReset = () => setZoomLevel(DEFAULT_ZOOM);
 // (starting at the 4th index, e.g. 30-minute slots)
 
   const handleZoomIn = () => setZoomLevel(z => Math.min(z + 1, slotDurations.length - 1));
@@ -178,6 +202,14 @@ const closeModal = () => {
             <ZoomOut size={16} />
           </button>
           <button
+            onClick={handleZoomReset}
+            disabled={zoomLevel === DEFAULT_ZOOM}
+            title="Reset zoom"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+          >
+            <RotateCcw size={16} />
+          </button>
+          <button
             onClick={handleZoomIn}
             disabled={zoomLevel === slotDurations.length - 1}
             title="Zoom in"
@@ -222,7 +254,7 @@ const closeModal = () => {
           initialDate={selectedDate}
           headerToolbar={false}
           allDaySlot={false}
-          slotMinTime="06:00:00"
+          slotMinTime="07:00:00"
           slotMaxTime="22:00:00"
           slotDuration={currentSlotDuration}
           snapDuration={currentSlotDuration}
@@ -241,10 +273,18 @@ const closeModal = () => {
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           eventDidMount={(info) => {
-            // Browser tooltip with the full title — useful when the
-            // card is too narrow/short to show the whole thing.
+            // Native title is kept as an a11y fallback; the rich tooltip
+            // below replaces it visually for sighted users.
             info.el.setAttribute('title', info.event.title)
           }}
+          eventMouseEnter={(info) => {
+            const rect = info.el.getBoundingClientRect()
+            setTooltipState({
+              sessionId: info.event.id,
+              position: computeTooltipPosition(rect),
+            })
+          }}
+          eventMouseLeave={() => setTooltipState(null)}
           resourceAreaHeaderContent="Venues"
           slotLabelFormat={[{ hour: 'numeric', minute: '2-digit', hour12: true, meridiem: 'short' }]}
         />
@@ -253,6 +293,8 @@ const closeModal = () => {
       {modalOpen && (
         <SessionModal isOpen={modalOpen} onClose={closeModal} sessionId={editingSession} initialVenueId={selectedVenue} initialTimeRange={selectedTimeRange} initialDate={selectedDate} />
       )}
+
+      <SessionTooltip state={tooltipState} />
     </div>
   );
 };

@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import FullCalendar, { EventResizeDoneArg } from '@fullcalendar/react'
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Plus, ZoomIn, ZoomOut, Eye, EyeOff, Calendar } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, Eye, EyeOff, Calendar, RotateCcw } from 'lucide-react'
 import { useStore } from '../store'
 import { SessionModal } from '../components/SessionModal'
 import { DateTabs } from '../components/DateTabs'
+import { SessionTooltip, computeTooltipPosition, type SessionTooltipState } from '../components/SessionTooltip'
 import { getInitialDate } from '../utils/dates'
 import { format } from 'date-fns'
 
@@ -19,6 +20,7 @@ export const TimelineView: React.FC = () => {
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null)
   const [editingSession, setEditingSession] = useState<string | null>(null)
   const [hideEmptyVenues, setHideEmptyVenues] = useState(false)
+  const [tooltipState, setTooltipState] = useState<SessionTooltipState | null>(null)
 
   // ── ZOOM SETUP ───────────────────────────────────────────────────
   const slotDurations = [
@@ -27,7 +29,13 @@ export const TimelineView: React.FC = () => {
     '00:10:00',
     '00:05:00',
   ]
-  const [zoomLevel, setZoomLevel] = useState(5) // start at '00:15:00'
+  // slotDurations is ['00:20:00','00:15:00','00:10:00','00:05:00'].
+  // Default to index 1 = '00:15:00' (was previously set to 5, which
+  // was out of bounds and made FullCalendar fall back to its default
+  // slot, producing weird in-then-out jumps on zoom out).
+  const DEFAULT_ZOOM = 1
+  const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM)
+  const handleZoomReset = () => setZoomLevel(DEFAULT_ZOOM)
   const currentSlot = slotDurations[zoomLevel]
 
   const handleZoomIn = () =>
@@ -40,6 +48,36 @@ export const TimelineView: React.FC = () => {
     const api = calendarRef.current?.getApi()
     if (api) api.gotoDate(selectedDate)
   }, [selectedDate])
+
+  // Snap selectedDate into the event range once the event loads. Mirror
+  // of GridView's fix — same root cause (initial useState falls back to
+  // today before the store is populated; FullCalendar's initialDate
+  // only honors the first mount).
+  useEffect(() => {
+    if (!currentEvent?.startDate) return
+    const inRange =
+      selectedDate >= currentEvent.startDate &&
+      (!currentEvent.endDate || selectedDate <= currentEvent.endDate)
+    if (!inRange) {
+      setSelectedDate(getInitialDate(sessions, currentEvent.startDate))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEvent?.startDate, currentEvent?.endDate])
+
+  // Force FullCalendar to recompute internal widths after data loads,
+  // then ALSO after web fonts finish loading. Custom fonts shift text
+  // metrics relative to the system fallback, so the column widths
+  // FullCalendar measured at first mount can be off by a few pixels —
+  // producing a transient horizontal scrollbar that resolves only
+  // after the font swap forces a reflow.
+  useEffect(() => {
+    const api = calendarRef.current?.getApi()
+    if (!api) return
+    api.updateSize()
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => api.updateSize())
+    }
+  }, [sessions, currentEvent?.startDate])
 
   // ── filters, events, resources ─────────────────────────────────
   const filtered = sessions.filter(s => {
@@ -159,6 +197,14 @@ export const TimelineView: React.FC = () => {
             <ZoomOut size={16}/>
           </button>
           <button
+            onClick={handleZoomReset}
+            disabled={zoomLevel === DEFAULT_ZOOM}
+            title="Reset zoom"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md disabled:opacity-50"
+          >
+            <RotateCcw size={16}/>
+          </button>
+          <button
             onClick={handleZoomIn}
             disabled={zoomLevel === slotDurations.length - 1}
             title="Zoom in"
@@ -201,7 +247,7 @@ export const TimelineView: React.FC = () => {
           initialView="resourceTimelineDay"
           initialDate={selectedDate}
           headerToolbar={false}
-          slotMinTime="06:00:00"
+          slotMinTime="07:00:00"
           slotMaxTime="22:00:00"
 
           // ← use current zoom slot duration here:
@@ -225,6 +271,14 @@ export const TimelineView: React.FC = () => {
           eventDidMount={(info) => {
             info.el.setAttribute('title', info.event.title)
           }}
+          eventMouseEnter={(info) => {
+            const rect = info.el.getBoundingClientRect()
+            setTooltipState({
+              sessionId: info.event.id,
+              position: computeTooltipPosition(rect),
+            })
+          }}
+          eventMouseLeave={() => setTooltipState(null)}
           resourceAreaHeaderContent="Venues"
         />
       </div>
@@ -239,6 +293,8 @@ export const TimelineView: React.FC = () => {
           initialDate={selectedDate}
         />
       )}
+
+      <SessionTooltip state={tooltipState} />
     </div>
   )
 }

@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+ * TYPE SCALE — single source of truth referenced across components & FC
+ * ----------------------------------------------------------------------------
+ * Modal / section title       text-base font-semibold text-gray-900    16px/600
+ * Panel header (Filters etc.) text-base font-semibold text-gray-900    16px/600
+ * Sub-section header (caps)   text-sm  font-semibold uppercase tracking-wide   14px/600
+ * Field label                 text-sm  font-medium  text-gray-700      14px/500
+ * Body / form value           text-sm  text-gray-700                   14px/400
+ * Helper / caption            text-xs  text-gray-500                   12px/400
+ * Chip / badge                text-[10px] font-semibold uppercase      10px/600
+ *
+ * Font family is Tailwind's default font-sans across the entire app
+ * (system-ui → BlinkMacSystemFont → Segoe UI → Roboto → …). FullCalendar
+ * normally uses its own family; the .fc rule below makes it inherit
+ * from body so text metrics match from initial render — this also
+ * eliminates a transient scrollbar that used to appear when FC's font
+ * loaded a different width than the app font.
+ * ============================================================================ */
+
+/* Base rule on the FC root: inherit the app font, set 12px as the
+ * baseline size so anything inside the calendar that doesn't override
+ * starts here (instead of FC's larger default). Overrides below pin
+ * specific roles to specific weights/colors. */
+.fc {
+  font-family: inherit;
+  font-size: 0.75rem;        /* 12px base for everything inside */
+}
+
+/* Prevent fixed-position UI (SessionTooltip, etc.) from creating a
+ * horizontal scrollbar on the document. FullCalendar's own horizontal
+ * scroll lives on `.fc-scroller` and isn't affected by this rule. */
+html, body {
+  overflow-x: hidden;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -22,32 +57,99 @@
   background: #a1a1a1;
 }
 
-/* Reduce time text size */
-.fc-timegrid-axis-cushion,
-.fc-timegrid-slot-label-cushion {
-  font-size: 0.75rem !important;
-}
+/* ----------------------------------------------------------------------------
+ * FullCalendar typography — all roles aligned to the type scale above.
+ * Defaults to 12px/600 for headers and 12px/500 for time/event text so the
+ * calendar reads as a single visual family with the rest of the app.
+ * Zoom modifiers (below) scale slot labels and column headers up/down.
+ * --------------------------------------------------------------------------*/
 
-/* Reduce venue text size */
-.fc-resource-timeline-divider,
-.fc-resource-group-lane,
-.fc-resource-lane {
-  font-size: 0.875rem !important;
-}
-
-/* Venue column headers in the Grid (resource-timegrid) view.
-   Default FullCalendar font is loud; dial it down for density. */
+/* Column headers in Grid (day-of-week strip) + resource labels in either
+ * Grid (venue columns) or Timeline (venue rows). Same role conceptually;
+ * keep them identical. Target both the outer cell AND the inner cushion
+ * so the size sticks regardless of which level FullCalendar applied a
+ * default to. */
+.fc .fc-col-header-cell,
+.fc .fc-col-header-cell-cushion,
+.fc .fc-resource-area .fc-datagrid-cell,
 .fc .fc-resource-area .fc-datagrid-cell-cushion,
-.fc .fc-col-header-cell-cushion {
-  font-size: 0.75rem !important;
+.fc .fc-resource-lane,
+.fc .fc-resource-group-lane {
+  font-size: 0.75rem !important;          /* 12px */
   font-weight: 600 !important;
-  color: #374151;
+  color: #1f2937;                         /* gray-800 */
   white-space: normal !important;
-  line-height: 1.25;
+  line-height: 1.3;
+  vertical-align: middle !important;      /* center within tall cells */
 }
 
-/* Session card titles wrap to 2 lines when there's space; full title
-   is always available on hover via the title attribute. */
+/* Grid view's time-axis column. Wide enough for "12:00pm" with a little
+ * breathing room, without wasting horizontal space the way 150px did.
+ * (Timeline's venues column stays at 150px — venue names legitimately
+ * need more room than time labels.) FullCalendar controls column width
+ * via the table's <colgroup>, so target the col + cell wrapper. */
+.fc-timegrid colgroup col:first-child,
+.fc .fc-timegrid-axis,
+.fc .fc-timegrid-axis-frame,
+.fc th.fc-timegrid-axis,
+.fc td.fc-timegrid-axis {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+
+/* Time-axis labels — 12am, 1am, 10:30, etc. Lighter weight than headers
+ * so they read as secondary structure rather than primary labels.
+ * Timeline view uses several slot-cushion variants depending on FC
+ * version; cover them all so the weight is consistent. */
+.fc-timegrid-axis-cushion,
+.fc-timegrid-slot-label-cushion,
+.fc .fc-timeline-slot-label-cushion,
+.fc .fc-timeline-slot-cushion,
+.fc .fc-timeline-header-row .fc-timeline-slot,
+.fc .fc-timeline-header-row .fc-timeline-slot-frame {
+  font-size: 0.75rem !important;          /* 12px */
+  font-weight: 500 !important;
+  color: #4b5563;                         /* gray-600 */
+}
+
+/* Left-justify time labels in Grid view's time-axis column. Target both
+ * the cell AND the cushion: text-align on the cell handles inline/block
+ * alignment, and width: 100% on the cushion stops FC from centering it
+ * via auto margins. */
+.fc-timegrid-slot-label,
+.fc-timegrid-axis {
+  text-align: left !important;
+}
+.fc-timegrid-slot-label-cushion,
+.fc-timegrid-axis-cushion {
+  text-align: left !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0 !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Tighten Grid view's column header row so it matches the height of
+ * Timeline's header row (which sits at FC default ~2rem). Scoped to
+ * .fc-timegrid so it doesn't touch Timeline's headers. */
+.fc-timegrid .fc-col-header,
+.fc-timegrid .fc-col-header-cell {
+  height: 2rem !important;
+}
+
+/* Session card title + time label inside events. */
+.fc-event-title,
+.fc-event-title-container,
+.fc-event-time {
+  font-size: 0.75rem !important;          /* 12px */
+  font-weight: 500 !important;
+}
+
+/* Multi-line wrapping for tall session blocks in the Grid view. Width
+ * is too narrow to show long titles on one line, so clamp to 3 lines
+ * with ellipsis. Full title is always available via the rich tooltip
+ * on hover. */
 .fc-timegrid-event .fc-event-title,
 .fc-timegrid-event .fc-event-title-container {
   white-space: normal !important;
@@ -56,34 +158,13 @@
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
-/* Zoom-specific font tweaks */
-body.zoom-0 .fc-timegrid-slot-label,
-body.zoom-0 .fc-col-header-cell {
-  font-size: 0.6rem !important;
-}
-
-body.zoom-1 .fc-timegrid-slot-label,
-body.zoom-1 .fc-col-header-cell {
-  font-size: 0.7rem !important;
-}
-
-body.zoom-2 .fc-timegrid-slot-label,
-body.zoom-2 .fc-col-header-cell {
-  font-size: 0.8rem !important;
-}
-
-body.zoom-3 .fc-timegrid-slot-label,
-body.zoom-3 .fc-col-header-cell {
-  font-size: 0.9rem !important;
-}
-
-body.zoom-4 .fc-timegrid-slot-label,
-body.zoom-4 .fc-col-header-cell {
-  font-size: 1rem !important;
-}
+/* Note: zoom buttons in the calendar views change slot *duration* via JS
+ * (controlling cell height/width). They no longer scale text — 12px reads
+ * fine at every zoom level and was the source of the typography drift
+ * we were chasing. */
 
 .fc-event {
   cursor: pointer;

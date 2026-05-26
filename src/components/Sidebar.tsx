@@ -70,7 +70,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
         onClick={onToggleOpen}
       >
         {isOpen ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
-        <h3 className="ml-1 font-medium text-gray-700">{title}</h3>
+        <h3 className="ml-1 text-sm font-semibold text-gray-800">{title}</h3>
       </div>
       {isOpen && (
         <div className="ml-6 space-y-2">
@@ -110,7 +110,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                     />
                     <label
                       htmlFor={`${title}-${item.id}`}
-                      className="text-sm text-gray-600 cursor-pointer flex-1"
+                      className="text-sm text-gray-700 cursor-pointer flex-1"
                     >
                       {item.name}
                     </label>
@@ -121,7 +121,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                         e.stopPropagation()
                         onSelectOnlyItem(item.id)
                       }}
-                      className="px-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-800"
+                      className="px-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
                       title={`Show only ${item.name}`}
                     >
                       Only
@@ -280,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {ToggleHandle}
       <div className="flex flex-col h-full w-80 bg-white border-r overflow-y-auto">
         <div className="p-4 border-b">
-          <h2 className="font-medium text-gray-800">Filters</h2>
+          <h2 className="text-base font-semibold text-gray-900">Filters</h2>
           {/* Meta row — always rendered so the filter list below doesn't
               jitter when the active count changes. Clear is greyed out
               when there's nothing to clear; Collapse/Expand all is always

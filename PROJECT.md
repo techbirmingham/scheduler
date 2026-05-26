@@ -247,6 +247,11 @@ Mostly polish and reach, not blockers. In rough priority order:
   range, venue, speakers, session-type chip, track chips, and a gating
   badge for non-public sessions. ~30–45 min of work. Touch alt (tap to
   expand) is a follow-up once mobile responsiveness lands.
+- **Per-event day-start / day-end time.** Grid and Timeline currently
+  hardcode `slotMinTime="07:00:00"` and `slotMaxTime="22:00:00"`. Some
+  events (e.g., a multi-day with late-night parties) may want a
+  different range. Schema field on `events` + a Settings input + pass
+  the values to the FullCalendar config.
 - **Typography pass on Grid and Timeline.** Most pages adopted a
   consistent font/size hierarchy during the Settings / Sessions / Map
   polish passes; Grid and Timeline didn't get the same treatment and

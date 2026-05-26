@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Map as MapIcon, Plus, MapPin, Clock, Users, Edit, Trash2, Inbox } from 'lucide-react';
 import { useStore, useIsAdmin } from '../store';
 import { useConfirm } from '../components/ConfirmDialog';
+import { formatTimeRange } from '../utils/formatTime';
 import { SessionModal } from '../components/SessionModal';
 import { VenueModal } from '../components/VenueModal';
 import { getInitialDate } from '../utils/dates';
@@ -36,28 +37,6 @@ export const MapView: React.FC = () => {
   const isAdmin = useIsAdmin();
   const confirm = useConfirm();
   const currentEvent = events.find(e => e.id === currentEventId);
-
-  // Format 24h "HH:mm" → "H:mm AM/PM" to match the AM/PM convention the
-  // other views adopted. Returns '' for falsy input so callers can compose
-  // ranges without rendering literal "null" when endTime is missing.
-  const formatTime = (t?: string | null): string => {
-    if (!t) return '';
-    const [hStr, mStr] = t.split(':');
-    const h = parseInt(hStr, 10);
-    const m = parseInt(mStr, 10);
-    if (isNaN(h)) return '';
-    const period = h >= 12 ? 'PM' : 'AM';
-    const hh = h % 12 || 12;
-    return m && !isNaN(m)
-      ? `${hh}:${String(m).padStart(2, '0')} ${period}`
-      : `${hh} ${period}`;
-  };
-  const formatTimeRange = (start?: string | null, end?: string | null): string => {
-    const s = formatTime(start);
-    const e = formatTime(end);
-    if (s && e) return `${s} – ${e}`;
-    return s || e;
-  };
 
   // Initialize map
   useEffect(() => {
