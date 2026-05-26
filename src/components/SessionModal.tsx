@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, AlertTriangle } from 'lucide-react'
 import Select, { MultiValue, SingleValue, StylesConfig } from 'react-select'
 import { useStore, useIsAdmin, Session } from '../store'
 import { useConfirm } from './ConfirmDialog'
+import {
+  computeSessionConflicts,
+  type SponsorshipConflict,
+} from '../utils/sponsorshipConflicts'
+
+// Amber soft-warning chip rendered under a role section when a parent
+// program has different orgs in that role. Doesn't block — humans decide.
+const ConflictChip: React.FC<{ conflict: SponsorshipConflict }> = ({ conflict }) => {
+  const where = conflict.entityType === 'program' ? 'Program' : 'Session'
+  return (
+    <div className="mt-2 flex items-start gap-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900">
+      <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+      <span>
+        {where} <strong>"{conflict.entityName}"</strong> has{' '}
+        <strong>{conflict.conflictingOrgNames.join(', ') || '(unknown org)'}</strong> as{' '}
+        {conflict.role}.
+      </span>
+    </div>
+  )
+}
 
 interface SessionModalProps {
   isOpen: boolean
@@ -197,6 +217,21 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
   if (!isOpen) return null
 
+  // Soft conflicts: parent programs that have different Host/Presenter orgs
+  // than what's currently selected on this session. Recomputed each render
+  // so chips appear/disappear live as the user edits the form.
+  const conflicts = computeSessionConflicts(
+    {
+      hosted_by_org_ids: formData.hosted_by_org_ids,
+      presented_by_org_ids: formData.presented_by_org_ids,
+      programIds: formData.programIds,
+    },
+    programs,
+    organizations,
+  )
+  const hostConflicts = conflicts.filter(c => c.role === 'Host')
+  const presenterConflicts = conflicts.filter(c => c.role === 'Presenter')
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -375,6 +410,9 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 onChange={v => updateField('hosted_by_org_ids', (v as MultiValue<Option>).map(o => o.value))}
                 styles={multiSelectStyles}
               />
+              {hostConflicts.map(c => (
+                <ConflictChip key={`host-${c.entityId}`} conflict={c} />
+              ))}
             </div>
 
             <div>
@@ -398,6 +436,9 @@ export const SessionModal: React.FC<SessionModalProps> = ({
                 onChange={v => updateField('presented_by_org_ids', (v as MultiValue<Option>).map(o => o.value))}
                 styles={multiSelectStyles}
               />
+              {presenterConflicts.map(c => (
+                <ConflictChip key={`pres-${c.entityId}`} conflict={c} />
+              ))}
             </div>
 
             <div>

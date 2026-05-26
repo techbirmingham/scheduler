@@ -1,9 +1,29 @@
 // src/components/ProgramModal.tsx
 import React, { useState, useEffect } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { X, Trash2, AlertTriangle } from 'lucide-react'
 import Select, { MultiValue, StylesConfig } from 'react-select'
 import { useStore, useIsAdmin } from '../store'
 import { useConfirm } from './ConfirmDialog'
+import {
+  computeProgramConflicts,
+  type SponsorshipConflict,
+} from '../utils/sponsorshipConflicts'
+
+// Amber soft-warning chip rendered under a role section when a child
+// (or parent, depending on perspective) has a different org in that role.
+const ConflictChip: React.FC<{ conflict: SponsorshipConflict }> = ({ conflict }) => {
+  const where = conflict.entityType === 'program' ? 'Program' : 'Session'
+  return (
+    <div className="mt-2 flex items-start gap-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded text-xs text-amber-900">
+      <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+      <span>
+        {where} <strong>"{conflict.entityName}"</strong> has{' '}
+        <strong>{conflict.conflictingOrgNames.join(', ') || '(unknown org)'}</strong> as{' '}
+        {conflict.role}.
+      </span>
+    </div>
+  )
+}
 
 interface Option { label: string; value: string }
 
@@ -48,7 +68,7 @@ const blank: FormState = {
 }
 
 export const ProgramModal: React.FC<ProgramModalProps> = ({ isOpen, onClose, programId }) => {
-  const { programs, organizations, addProgram, updateProgram, deleteProgram } = useStore()
+  const { programs, organizations, sessions, addProgram, updateProgram, deleteProgram } = useStore()
   const isAdmin = useIsAdmin()
   const confirm = useConfirm()
 
@@ -74,6 +94,20 @@ export const ProgramModal: React.FC<ProgramModalProps> = ({ isOpen, onClose, pro
   }, [isOpen, programId])
 
   if (!isOpen) return null
+
+  // Compute soft conflicts from current form state — re-runs on every
+  // multi-select change so the user sees chips appear/disappear live.
+  const conflicts = computeProgramConflicts(
+    {
+      id: programId,
+      hosted_by_org_ids: form.hosted_by_org_ids,
+      presented_by_org_ids: form.presented_by_org_ids,
+    },
+    sessions,
+    organizations,
+  )
+  const hostConflicts = conflicts.filter(c => c.role === 'Host')
+  const presenterConflicts = conflicts.filter(c => c.role === 'Presenter')
 
   const orgOpts: Option[] = organizations.map(o => ({ label: o.name, value: o.id }))
   const toOpts = (ids: string[]): Option[] =>
@@ -163,6 +197,9 @@ export const ProgramModal: React.FC<ProgramModalProps> = ({ isOpen, onClose, pro
                 placeholder="Pick host orgs…"
                 classNamePrefix="rs"
               />
+              {hostConflicts.map(c => (
+                <ConflictChip key={`host-${c.entityId}`} conflict={c} />
+              ))}
               <label className="block text-xs text-gray-500 mt-3 mb-1">
                 Display label override (optional, defaults to "Hosted by")
               </label>
@@ -187,6 +224,9 @@ export const ProgramModal: React.FC<ProgramModalProps> = ({ isOpen, onClose, pro
                 placeholder="Pick presenter orgs…"
                 classNamePrefix="rs"
               />
+              {presenterConflicts.map(c => (
+                <ConflictChip key={`pres-${c.entityId}`} conflict={c} />
+              ))}
               <label className="block text-xs text-gray-500 mt-3 mb-1">
                 Display label override (optional, defaults to "Presented by")
               </label>
