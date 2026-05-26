@@ -63,16 +63,19 @@ export const TimelineView: React.FC = () => {
         : null
       const type = sessionTypes.find(t => t.id === s.sessionTypeId)
       const color = firstTrack?.color || type?.color || '#6366f1'
-      return {
+      // Only set `end` when we have one. Otherwise FullCalendar's
+      // defaultTimedEventDuration kicks in per-event independently.
+      const ev: any = {
         id: s.id,
         title: s.title,
         start: `${s.date}T${s.startTime}`,
-        end:   `${s.date}T${s.endTime}`,
         resourceId: s.venueId,
         backgroundColor: color,
         borderColor:     color,
         extendedProps: { description: s.description }
       }
+      if (s.endTime) ev.end = `${s.date}T${s.endTime}`
+      return ev
     })
 
   const visibleVenueIds = selectedFilters.venues.length
@@ -192,6 +195,8 @@ export const TimelineView: React.FC = () => {
           // ← use current zoom slot duration here:
           slotDuration={currentSlot}
           snapDuration={currentSlot}
+          defaultTimedEventDuration="00:30:00"
+          forceEventDuration={true}
 
           height="100%"
           events={events}

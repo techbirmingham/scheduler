@@ -71,16 +71,20 @@ const [zoomLevel, setZoomLevel] = useState(3)
         : null
       const type = sessionTypes.find(t => t.id === session.sessionTypeId)
       const color = firstTrack?.color || type?.color || '#6366f1'
-      return {
+      // Only set `end` when we actually have one — interpolating null as
+      // a string produced "2026-06-25Tnull" before, which FullCalendar
+      // handled by sharing a fallback across events without ends.
+      const ev: any = {
         id: session.id,
         title: session.title,
         start: `${session.date}T${session.startTime}`,
-        end: `${session.date}T${session.endTime}`,
         resourceId: session.venueId,
         backgroundColor: color,
         borderColor: color,
         extendedProps: { description: session.description, speakers: session.speakerIds, sessionTypeId: session.sessionTypeId, trackIds: session.trackIds }
-      };
+      }
+      if (session.endTime) ev.end = `${session.date}T${session.endTime}`
+      return ev
     });
 
   const visibleVenueIds = selectedFilters.venues.length
@@ -209,6 +213,8 @@ const closeModal = () => {
           slotMaxTime="22:00:00"
           slotDuration={currentSlotDuration}
           snapDuration={currentSlotDuration}
+          defaultTimedEventDuration="00:30:00"
+          forceEventDuration={true}
           height="100%"
           events={events}
           resources={resources}
