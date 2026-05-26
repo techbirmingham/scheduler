@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import FullCalendar, { EventResizeDoneArg } from '@fullcalendar/react'
 import resourceTimelinePlugin from '@fullcalendar/resource-timeline'
 import interactionPlugin from '@fullcalendar/interaction'
-import { Plus, ZoomIn, ZoomOut } from 'lucide-react'
+import { Plus, ZoomIn, ZoomOut, Eye, EyeOff } from 'lucide-react'
 import { useStore } from '../store'
 import { SessionModal } from '../components/SessionModal'
 import { DateNavigator } from '../components/DateNavigator'
@@ -10,7 +10,7 @@ import { getInitialDate } from '../utils/dates'
 import { format } from 'date-fns'
 
 export const TimelineView: React.FC = () => {
-  const { venues, sessions, sessionTypes, selectedFilters } = useStore()
+  const { venues, sessions, sessionTypes, tracks, selectedFilters } = useStore()
   const currentEvent = useStore(s => s.events.find(e => e.id === s.currentEventId))
   const calendarRef = useRef<FullCalendar>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -18,6 +18,7 @@ export const TimelineView: React.FC = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: string; end: string } | null>(null)
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null)
   const [editingSession, setEditingSession] = useState<string | null>(null)
+  const [hideEmptyVenues, setHideEmptyVenues] = useState(false)
 
   // ── ZOOM SETUP ───────────────────────────────────────────────────
   const slotDurations = [
@@ -55,15 +56,21 @@ export const TimelineView: React.FC = () => {
   const events = filtered
     .filter(s => s.date === selectedDate)
     .map(s => {
+      // Color priority: first track > session type > neutral indigo.
+      // Matches Grid view's logic so colors are consistent across views.
+      const firstTrack = s.trackIds.length
+        ? tracks.find(t => t.id === s.trackIds[0])
+        : null
       const type = sessionTypes.find(t => t.id === s.sessionTypeId)
+      const color = firstTrack?.color || type?.color || '#6366f1'
       return {
         id: s.id,
         title: s.title,
         start: `${s.date}T${s.startTime}`,
         end:   `${s.date}T${s.endTime}`,
         resourceId: s.venueId,
-        backgroundColor: type?.color || '#3788d8',
-        borderColor:     type?.color || '#3788d8',
+        backgroundColor: color,
+        borderColor:     color,
         extendedProps: { description: s.description }
       }
     })
@@ -72,9 +79,13 @@ export const TimelineView: React.FC = () => {
   ? selectedFilters.venues
   : venues.map(v => v.id)
 
-const resources = venues
-  .filter(v => visibleVenueIds.includes(v.id))
-  .map(v => ({ id: v.id, title: v.name }))
+  // Venues with at least one session (post-filter) on the active date.
+  const venueIdsWithSessions = new Set(events.map(e => e.resourceId))
+
+  const resources = venues
+    .filter(v => visibleVenueIds.includes(v.id))
+    .filter(v => !hideEmptyVenues || venueIdsWithSessions.has(v.id))
+    .map(v => ({ id: v.id, title: v.name }))
 
   // ── modal controls ─────────────────────────────────────────────
   const handleAddClick = () => {
@@ -125,6 +136,17 @@ const resources = venues
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Timeline View</h1>
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setHideEmptyVenues(v => !v)}
+            title={hideEmptyVenues ? 'Show all venues' : 'Hide venues with no sessions today'}
+            className={`p-2 rounded-md text-sm font-medium flex items-center ${
+              hideEmptyVenues
+                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            {hideEmptyVenues ? <EyeOff size={16}/> : <Eye size={16}/>}
+          </button>
           <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}
@@ -183,6 +205,9 @@ const resources = venues
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
           eventResizableFromStart
+          eventDidMount={(info) => {
+            info.el.setAttribute('title', info.event.title)
+          }}
           resourceAreaHeaderContent="Venues"
         />
       </div>
