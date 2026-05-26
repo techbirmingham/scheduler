@@ -153,6 +153,14 @@ body.zoom-4 .fc-col-header-cell {
   transform: scale(1.1);
 }
 
+/* Selected venue — uses rose (not indigo) so it stands out against the
+ * indigo defaults instead of blending into them. */
+.venue-marker.selected .venue-marker-inner {
+  background-color: #F43F5E;
+  transform: scale(1.25);
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.35), 0 4px 8px -1px rgba(0, 0, 0, 0.2);
+}
+
 /* Geocoding error indicator */
 .venue-marker.geocoding-error .venue-marker-inner {
   background-color: #EF4444;

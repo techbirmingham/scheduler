@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Map as MapIcon, Plus, MapPin, Clock, Users, Edit, Trash2 } from 'lucide-react';
+import { Map as MapIcon, Plus, MapPin, Clock, Users, Edit, Trash2, Inbox } from 'lucide-react';
 import { useStore, useIsAdmin } from '../store';
 import { useConfirm } from '../components/ConfirmDialog';
 import { SessionModal } from '../components/SessionModal';
@@ -24,13 +24,40 @@ export const MapView: React.FC = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapInstance, setMapInstance] = useState<mapboxgl.Map | null>(null);
   const [markers, setMarkers] = useState<mapboxgl.Marker[]>([]);
-  const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
+  // Venue currently displayed in the details panel. Click a card or pin to
+  // change it. Replaces the previous popup-on-map approach.
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  // Venue id stamped on the SessionModal when creating a new session — set
+  // by the "+ Add session" affordances. Distinct from the panel selection.
+  const [addSessionVenueId, setAddSessionVenueId] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   
-  const { venues, sessions, sessionTypes, speakers, addVenue, updateVenue, deleteVenue, events, currentEventId } = useStore();
+  const { venues, sessions, sessionTypes, tracks, speakers, addVenue, updateVenue, deleteVenue, events, currentEventId } = useStore();
   const isAdmin = useIsAdmin();
   const confirm = useConfirm();
   const currentEvent = events.find(e => e.id === currentEventId);
+
+  // Format 24h "HH:mm" → "H:mm AM/PM" to match the AM/PM convention the
+  // other views adopted. Returns '' for falsy input so callers can compose
+  // ranges without rendering literal "null" when endTime is missing.
+  const formatTime = (t?: string | null): string => {
+    if (!t) return '';
+    const [hStr, mStr] = t.split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (isNaN(h)) return '';
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hh = h % 12 || 12;
+    return m && !isNaN(m)
+      ? `${hh}:${String(m).padStart(2, '0')} ${period}`
+      : `${hh} ${period}`;
+  };
+  const formatTimeRange = (start?: string | null, end?: string | null): string => {
+    const s = formatTime(start);
+    const e = formatTime(end);
+    if (s && e) return `${s} – ${e}`;
+    return s || e;
+  };
 
   // Initialize map
   useEffect(() => {
@@ -55,29 +82,31 @@ export const MapView: React.FC = () => {
     }
   }, []);
 
-  // Add markers for venues
+  // Place a marker per geocoded venue. Markers are click-to-select — they
+  // no longer carry popup HTML; the details panel renders session info.
+  // Deps are intentionally narrow (venues + map state only) so the marker
+  // set isn't recreated every time sessions or other entities change.
   useEffect(() => {
     if (!mapLoaded || !mapInstance) return;
 
+    let cancelled = false;
+
     const addMarkers = async () => {
       setIsGeocoding(true);
-      
+
       // Clear existing markers
       markers.forEach(marker => marker.remove());
       const newMarkers: mapboxgl.Marker[] = [];
 
-      // Geocode all venues
       const coordsList = await Promise.all(
         venues.map(venue => geocodeAddress(venue.location || ''))
       );
+      if (cancelled) return;
 
       venues.forEach((venue, idx) => {
         const coords = coordsList[idx];
-        
-        // Get venue sessions
-        const venueSessions = sessions.filter(session => session.venueId === venue.id);
-        
-        // Create marker element
+        if (!coords) return;
+
         const markerEl = document.createElement('div');
         markerEl.className = 'venue-marker';
         markerEl.innerHTML = `
@@ -88,161 +117,26 @@ export const MapView: React.FC = () => {
             </svg>
           </div>
         `;
-        
-        // Create popup content
-        const popup = new mapboxgl.Popup({
-          offset: 25,
-          closeButton: true,
-          maxWidth: '300px',
-          className: 'venue-popup'
-        });
-        
-        // Group sessions by date
-        const sessionsByDate = venueSessions.reduce((acc, session) => {
-          if (!acc[session.date]) acc[session.date] = [];
-          acc[session.date].push(session);
-          return acc;
-        }, {} as Record<string, typeof sessions>);
 
-        // Sort sessions by start time
-        Object.values(sessionsByDate).forEach(dateSessions => {
-          dateSessions.sort((a, b) => a.startTime.localeCompare(b.startTime));
+        // Click selects the venue — details panel and selected pin styling
+        // both watch selectedVenueId.
+        markerEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          setSelectedVenueId(venue.id);
         });
 
-        // Set popup content
-        const popupContent = document.createElement('div');
-        popupContent.innerHTML = `
-          <div class="p-4">
-            <div class="flex items-start justify-between mb-3">
-              <div>
-                <h3 class="font-bold text-gray-900">${venue.name}</h3>
-                <div class="text-sm text-gray-600 mt-1">
-                  ${venue.location || ''}
-                  ${venue.capacity ? `
-                    <span class="inline-flex items-center ml-2 text-xs bg-gray-100 px-2 py-0.5 rounded">
-                      <Users size="12" class="mr-1" />
-                      Capacity: ${venue.capacity}
-                    </span>
-                  ` : ''}
-                </div>
-              </div>
-              <div class="flex space-x-2">
-                <button class="edit-venue-btn p-1 text-gray-400 hover:text-indigo-600 transition-colors">
-                  <Edit size={16} />
-                </button>
-                ${isAdmin ? `
-                  <button class="delete-venue-btn p-1 text-gray-400 hover:text-red-600 transition-colors">
-                    <Trash2 size={16} />
-                  </button>
-                ` : ''}
-              </div>
-            </div>
-
-            ${Object.keys(sessionsByDate).length > 0 ? `
-              <div class="space-y-4">
-                ${Object.entries(sessionsByDate).map(([date, dateSessions]) => `
-                  <div>
-                    <div class="text-xs font-medium text-gray-700 mb-2">
-                      ${dayjs(date).format('dddd, MMMM D')}
-                    </div>
-                    <div class="space-y-2">
-                      ${dateSessions.map(session => {
-                        const sessionType = sessionTypes.find(t => t.id === session.sessionTypeId);
-                        const sessionSpeakers = speakers
-                          .filter(s => session.speakerIds.includes(s.id))
-                          .map(s => s.name)
-                          .join(', ');
-
-                        return `
-                          <div class="bg-gray-50 rounded-lg p-2">
-                            <div class="font-medium text-sm">${session.title}</div>
-                            <div class="flex items-center mt-1 space-x-2">
-                              <span class="inline-flex items-center text-xs text-gray-500">
-                                <Clock size="12" class="mr-1" />
-                                ${session.startTime} - ${session.endTime}
-                              </span>
-                              ${sessionType ? `
-                                <span class="inline-flex items-center text-xs px-1.5 py-0.5 rounded" 
-                                      style="background-color: ${sessionType.color}25; color: ${sessionType.color}">
-                                  ${sessionType.name}
-                                </span>
-                              ` : ''}
-                            </div>
-                            ${sessionSpeakers ? `
-                              <div class="text-xs text-gray-600 mt-1">
-                                <span class="inline-flex items-center">
-                                  <Users size="12" class="mr-1" />
-                                  ${sessionSpeakers}
-                                </span>
-                              </div>
-                            ` : ''}
-                          </div>
-                        `;
-                      }).join('')}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : `
-              <div class="text-sm text-gray-500 mb-3">No sessions scheduled</div>
-            `}
-
-            <button 
-              class="mt-4 w-full bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors add-session-btn"
-              data-venue-id="${venue.id}"
-            >
-              + Add session to this venue
-            </button>
-          </div>
-        `;
-        
-        // Add click handlers
-        const addButton = popupContent.querySelector('.add-session-btn');
-        const editButton = popupContent.querySelector('.edit-venue-btn');
-        const deleteButton = popupContent.querySelector('.delete-venue-btn');
-
-        if (addButton) {
-          addButton.addEventListener('click', () => {
-            setSelectedVenue(venue.id);
-            setEditingSession(null);
-            setModalOpen(true);
-          });
-        }
-
-        if (editButton) {
-          editButton.addEventListener('click', () => {
-            setEditingVenue(venue);
-            setVenueModalOpen(true);
-          });
-        }
-
-        if (deleteButton) {
-          deleteButton.addEventListener('click', async () => {
-            const ok = await confirm({
-              title: `Delete "${venue.name}"?`,
-              body: 'This will also remove all associated sessions.',
-              confirmLabel: 'Delete',
-              destructive: true,
-            });
-            if (ok) deleteVenue(venue.id);
-          });
-        }
-        
-        popup.setDOMContent(popupContent);
-        
-        // Create and add the marker
         const marker = new mapboxgl.Marker(markerEl)
           .setLngLat([coords.lng, coords.lat])
-          .setPopup(popup)
           .addTo(mapInstance);
-        
+
         newMarkers.push(marker);
       });
-      
+
       setMarkers(newMarkers);
       setIsGeocoding(false);
 
-      // Fit bounds to include all markers
+      // Fit bounds to include all markers (only on first load — subsequent
+      // selections fly to the chosen venue rather than re-fitting).
       if (newMarkers.length > 0) {
         const bounds = new mapboxgl.LngLatBounds();
         newMarkers.forEach(marker => bounds.extend(marker.getLngLat()));
@@ -251,7 +145,37 @@ export const MapView: React.FC = () => {
     };
 
     addMarkers();
-  }, [venues, sessions, mapLoaded, mapInstance, sessionTypes, speakers, isAdmin, confirm]);
+
+    return () => { cancelled = true; };
+  }, [venues, mapLoaded, mapInstance]);
+
+  // Apply/clear the .selected CSS class on the marker that matches
+  // selectedVenueId. Cheaper than re-rendering all markers when selection
+  // changes — just a class swap.
+  useEffect(() => {
+    markers.forEach((marker, idx) => {
+      const el = marker.getElement();
+      if (venues[idx]?.id === selectedVenueId) {
+        el.classList.add('selected');
+      } else {
+        el.classList.remove('selected');
+      }
+    });
+  }, [selectedVenueId, markers, venues]);
+
+  // Pan/zoom to the selected venue when selection changes.
+  useEffect(() => {
+    if (!selectedVenueId || !mapInstance) return;
+    const idx = venues.findIndex(v => v.id === selectedVenueId);
+    const marker = markers[idx];
+    if (!marker) return;
+    const ll = marker.getLngLat();
+    mapInstance.flyTo({
+      center: [ll.lng, ll.lat],
+      zoom: Math.max(mapInstance.getZoom(), 15),
+      duration: 600,
+    });
+  }, [selectedVenueId, markers, venues, mapInstance]);
 
   const handleVenueSave = (values: { id?: string; name: string; location: string; capacity: number }) => {
     if (values.id) {
@@ -264,23 +188,56 @@ export const MapView: React.FC = () => {
   };
 
   const handleAddClick = () => {
-    setSelectedVenue(null);
+    setAddSessionVenueId(null);
     setEditingSession(null);
     setModalOpen(true);
   };
-  
+
   const closeModal = () => {
     setModalOpen(false);
     setEditingSession(null);
-    setSelectedVenue(null);
+    setAddSessionVenueId(null);
   };
 
-  const handleVenueClick = (venueId: string) => {
-    const marker = markers.find((_, index) => venues[index].id === venueId);
-    if (marker) {
-      marker.togglePopup();
-    }
+  const openAddSessionForVenue = (venueId: string) => {
+    setAddSessionVenueId(venueId);
+    setEditingSession(null);
+    setModalOpen(true);
   };
+
+  const openSessionForEdit = (sessionId: string) => {
+    setEditingSession(sessionId);
+    setAddSessionVenueId(null);
+    setModalOpen(true);
+  };
+
+  // "Unscheduled" is a pseudo-venue in the list — sessions that exist but
+  // haven't been placed at a real venue yet. Selecting it routes the
+  // details panel to a different view; no pin highlights on the map.
+  const UNSCHEDULED_ID = '__unscheduled__';
+  const isUnscheduledView = selectedVenueId === UNSCHEDULED_ID;
+
+  const unscheduledSessions = sessions
+    .filter(s => !s.venueId || !venues.some(v => v.id === s.venueId))
+    .sort((a, b) =>
+      (a.date || '').localeCompare(b.date || '') ||
+      (a.startTime || '').localeCompare(b.startTime || ''),
+    );
+
+  // Resolve the selected venue's data + sessions once for the details panel.
+  const selectedVenue = !isUnscheduledView && selectedVenueId
+    ? venues.find(v => v.id === selectedVenueId)
+    : null;
+  const selectedVenueSessions = selectedVenue
+    ? sessions
+        .filter(s => s.venueId === selectedVenue.id)
+        .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || ''))
+    : [];
+  const selectedSessionsByDate = selectedVenueSessions.reduce((acc, s) => {
+    const d = s.date || 'Unscheduled';
+    (acc[d] ??= []).push(s);
+    return acc;
+  }, {} as Record<string, typeof sessions>);
 
   return (
     <div className="h-full flex flex-col">
@@ -304,97 +261,269 @@ export const MapView: React.FC = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0">
-        {/* Venues List */}
-        <div className="bg-white p-4 rounded-lg shadow overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-800">Venues</h2>
-          </div>
-          
-          <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
+        {/* — Venues list (narrow, just name + sessions chip) — */}
+        <div className="md:col-span-3 bg-white p-4 rounded-lg shadow overflow-y-auto">
+          <h2 className="text-lg font-medium text-gray-800 mb-4">Venues</h2>
+          <div className="space-y-2">
+            {unscheduledSessions.length > 0 && (
+              <div
+                onClick={() => setSelectedVenueId(UNSCHEDULED_ID)}
+                className={`border rounded-md p-2.5 cursor-pointer transition ${
+                  isUnscheduledView
+                    ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200'
+                    : 'border-amber-200 bg-amber-50/60 hover:bg-amber-100/60 hover:border-amber-300'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Inbox
+                    size={14}
+                    className={`flex-shrink-0 ${isUnscheduledView ? 'text-rose-600' : 'text-amber-600'}`}
+                  />
+                  <span className="font-medium text-sm text-gray-900 truncate flex-1">Unscheduled</span>
+                  <span className="px-1.5 py-0.5 text-[10px] rounded font-medium bg-amber-100 text-amber-700">
+                    {unscheduledSessions.length}
+                  </span>
+                </div>
+              </div>
+            )}
             {venues.map((venue) => {
-              const venueSessions = sessions.filter(session => session.venueId === venue.id);
-              
+              const venueSessions = sessions.filter(s => s.venueId === venue.id);
+              const isSelected = venue.id === selectedVenueId;
               return (
-                <div 
+                <div
                   key={venue.id}
-                  onClick={() => handleVenueClick(venue.id)}
-                  className="border border-gray-200 rounded-md p-3 hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                  onClick={() => setSelectedVenueId(venue.id)}
+                  className={`border rounded-md p-2.5 cursor-pointer transition ${
+                    isSelected
+                      ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200'
+                      : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                  }`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900 flex items-center">
-                        <MapPin size={14} className="mr-1 text-indigo-600" />
-                        {venue.name}
-                      </h3>
-                      
-                      <div className="text-sm text-gray-500 mt-1">
-                        {venue.location && <span>{venue.location}</span>}
-                        {venue.capacity && (
-                          <span className="ml-2">Capacity: {venue.capacity}</span>
-                        )}
-                      </div>
-
-                      <div className="mt-2 text-xs text-gray-600">
-                        {venueSessions.length} sessions scheduled
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingVenue(venue);
-                          setVenueModalOpen(true);
-                        }}
-                        className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                        title="Edit venue"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const ok = await confirm({
-                              title: `Delete "${venue.name}"?`,
-                              body: 'This will also remove all associated sessions.',
-                              confirmLabel: 'Delete',
-                              destructive: true,
-                            });
-                            if (ok) deleteVenue(venue.id);
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Delete venue"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedVenue(venue.id);
-                          setEditingSession(null);
-                          setModalOpen(true);
-                        }}
-                        className="flex items-center text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
-                        title="Add a new session to this venue"
-                      >
-                        <Plus size={16} className="mr-1" />
-                        <span className="text-sm">Add Session</span>
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin
+                      size={14}
+                      className={`flex-shrink-0 ${isSelected ? 'text-rose-600' : 'text-indigo-600'}`}
+                    />
+                    <span className="font-medium text-sm text-gray-900 truncate flex-1">{venue.name}</span>
+                    <span
+                      className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${
+                        venueSessions.length > 0
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {venueSessions.length}
+                    </span>
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-        
-        {/* Map */}
-        <div className="bg-white rounded-lg shadow overflow-hidden relative md:col-span-2 h-[600px] md:h-full">
+
+        {/* — Selected venue details panel — */}
+        <div className="md:col-span-4 bg-white rounded-lg shadow overflow-y-auto">
+          {isUnscheduledView ? (
+            <div className="p-4">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Inbox size={18} className="text-amber-600" />
+                  Unscheduled sessions
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Sessions that aren't attached to a venue yet. Click one to assign it.
+                </p>
+              </div>
+
+              {unscheduledSessions.length === 0 ? (
+                <p className="text-sm text-gray-500">Everything is scheduled — nothing here.</p>
+              ) : (
+                <div className="space-y-2">
+                  {unscheduledSessions.map(session => {
+                    const sessionType = sessionTypes.find(t => t.id === session.sessionTypeId);
+                    const firstTrack = tracks.find(t => session.trackIds?.includes(t.id));
+                    const accentColor = firstTrack?.color || sessionType?.color || '#6366f1';
+                    const sessionSpeakers = speakers
+                      .filter(s => session.speakerIds.includes(s.id))
+                      .map(s => s.name)
+                      .join(', ');
+                    const timeRange = formatTimeRange(session.startTime, session.endTime);
+                    const dateLabel = session.date ? dayjs(session.date).format('ddd, MMM D') : null;
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => openSessionForEdit(session.id)}
+                        className="w-full text-left bg-gray-50 hover:bg-gray-100 rounded-lg p-2 border-l-2 transition"
+                        style={{ borderLeftColor: accentColor }}
+                      >
+                        <div className="font-medium text-sm text-gray-900">{session.title || '(untitled)'}</div>
+                        <div className="flex items-center mt-1 gap-2 flex-wrap text-xs">
+                          <span className="px-1.5 py-0.5 text-[10px] rounded font-medium bg-amber-100 text-amber-700 uppercase tracking-wide">
+                            No venue
+                          </span>
+                          {dateLabel && (
+                            <span className="inline-flex items-center text-gray-500">
+                              {dateLabel}
+                            </span>
+                          )}
+                          {timeRange && (
+                            <span className="inline-flex items-center text-gray-500">
+                              <Clock size={12} className="mr-1" /> {timeRange}
+                            </span>
+                          )}
+                          {sessionType && (
+                            <span
+                              className="px-1.5 py-0.5 rounded"
+                              style={{ backgroundColor: `${sessionType.color}25`, color: sessionType.color }}
+                            >
+                              {sessionType.name}
+                            </span>
+                          )}
+                        </div>
+                        {sessionSpeakers && (
+                          <div className="text-xs text-gray-600 mt-1 flex items-center">
+                            <Users size={12} className="mr-1" /> {sessionSpeakers}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : selectedVenue ? (
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-gray-900">{selectedVenue.name}</h2>
+                  {selectedVenue.location && (
+                    <div className="text-sm text-gray-500 mt-0.5">{selectedVenue.location}</div>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-2 text-xs flex-wrap">
+                    {selectedVenue.capacity ? (
+                      <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded font-medium">
+                        Cap. {selectedVenue.capacity}
+                      </span>
+                    ) : null}
+                    <span
+                      className={`px-1.5 py-0.5 rounded font-medium ${
+                        selectedVenueSessions.length > 0
+                          ? 'bg-indigo-50 text-indigo-700'
+                          : 'bg-gray-50 text-gray-500'
+                      }`}
+                    >
+                      {selectedVenueSessions.length} session{selectedVenueSessions.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <button
+                    onClick={() => { setEditingVenue(selectedVenue); setVenueModalOpen(true); }}
+                    className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors"
+                    title="Edit venue"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: `Delete "${selectedVenue.name}"?`,
+                          body: 'This will also remove all associated sessions.',
+                          confirmLabel: 'Delete',
+                          destructive: true,
+                        });
+                        if (ok) { deleteVenue(selectedVenue.id); setSelectedVenueId(null); }
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete venue"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => openAddSessionForVenue(selectedVenue.id)}
+                className="w-full mb-4 inline-flex items-center justify-center gap-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition"
+              >
+                <Plus size={14} /> Add session at this venue
+              </button>
+
+              {selectedVenueSessions.length === 0 ? (
+                <p className="text-sm text-gray-500">No sessions scheduled at this venue yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(selectedSessionsByDate).map(([date, dateSessions]) => (
+                    <div key={date}>
+                      <div className="text-xs font-medium text-gray-700 uppercase tracking-wide mb-2">
+                        {date === 'Unscheduled' ? 'Unscheduled' : dayjs(date).format('dddd, MMMM D')}
+                      </div>
+                      <div className="space-y-2">
+                        {dateSessions.map(session => {
+                          const sessionType = sessionTypes.find(t => t.id === session.sessionTypeId);
+                          const firstTrack = tracks.find(t => session.trackIds?.includes(t.id));
+                          const accentColor = firstTrack?.color || sessionType?.color || '#6366f1';
+                          const sessionSpeakers = speakers
+                            .filter(s => session.speakerIds.includes(s.id))
+                            .map(s => s.name)
+                            .join(', ');
+                          const timeRange = formatTimeRange(session.startTime, session.endTime);
+                          return (
+                            <button
+                              key={session.id}
+                              onClick={() => openSessionForEdit(session.id)}
+                              className="w-full text-left bg-gray-50 hover:bg-gray-100 rounded-lg p-2 border-l-2 transition"
+                              style={{ borderLeftColor: accentColor }}
+                            >
+                              <div className="font-medium text-sm text-gray-900">{session.title || '(untitled)'}</div>
+                              <div className="flex items-center mt-1 gap-2 flex-wrap text-xs">
+                                {timeRange && (
+                                  <span className="inline-flex items-center text-gray-500">
+                                    <Clock size={12} className="mr-1" /> {timeRange}
+                                  </span>
+                                )}
+                                {sessionType && (
+                                  <span
+                                    className="px-1.5 py-0.5 rounded"
+                                    style={{ backgroundColor: `${sessionType.color}25`, color: sessionType.color }}
+                                  >
+                                    {sessionType.name}
+                                  </span>
+                                )}
+                              </div>
+                              {sessionSpeakers && (
+                                <div className="text-xs text-gray-600 mt-1 flex items-center">
+                                  <Users size={12} className="mr-1" /> {sessionSpeakers}
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-full flex items-center justify-center p-6 text-center">
+              <div>
+                <MapPin size={28} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">
+                  Select a venue from the list or click a pin on the map to see its sessions.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* — Map — */}
+        <div className="md:col-span-5 bg-white rounded-lg shadow overflow-hidden relative h-[600px] md:h-full">
           {(!mapLoaded || isGeocoding) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
               <div className="text-gray-500 flex flex-col items-center">
                 <MapIcon size={24} className="mb-2 animate-pulse" />
                 <p>{isGeocoding ? 'Geocoding addresses...' : 'Loading map...'}</p>
@@ -402,15 +531,33 @@ export const MapView: React.FC = () => {
             </div>
           )}
           <div ref={mapContainerRef} className="w-full h-full" />
+
+          {/* Track legend — only shown when tracks exist for this event. */}
+          {tracks.length > 0 && (
+            <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-md shadow-sm p-2 max-w-[14rem] max-h-[40%] overflow-y-auto">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Tracks</div>
+              <div className="space-y-1">
+                {tracks.map(track => (
+                  <div key={track.id} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: track.color || '#6366f1' }}
+                    />
+                    <span className="text-gray-700 truncate">{track.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      
+
       {modalOpen && (
         <SessionModal
           isOpen={modalOpen}
           onClose={closeModal}
           sessionId={editingSession}
-          initialVenueId={selectedVenue}
+          initialVenueId={addSessionVenueId}
           initialTimeRange={null}
           initialDate={getInitialDate(sessions, currentEvent?.startDate)}
         />
