@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 
 import { NavLink, useLocation } from 'react-router-dom'
-import { Calendar, Clock, List, Map, Users, Settings } from 'lucide-react'
+import { Calendar, Clock, List, Map, Users, Building2, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { EventPicker } from './EventPicker'
 
@@ -19,6 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const isMapView      = location.pathname === '/map'
   const isSpeakersView = location.pathname === '/speakers'
+  const isOrgsView     = location.pathname === '/organizations'
   const isSettingsView = location.pathname === '/settings'
 
   return (
@@ -94,6 +95,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span>Speakers</span>
               </NavLink>
               <NavLink
+                to="/organizations"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
+                    isActive
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`
+                }
+              >
+                <Building2 size={16} />
+                <span>Organizations</span>
+              </NavLink>
+              <NavLink
                 to="/settings"
                 className={({ isActive }) =>
                   `px-3 py-2 rounded-md flex items-center space-x-1 text-sm ${
@@ -113,13 +127,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {!isMapView && !isSpeakersView && !isSettingsView && (
+        {!isMapView && !isSpeakersView && !isOrgsView && !isSettingsView && (
           <Sidebar
             isOpen={sidebarOpen}
             toggleSidebar={() => setSidebarOpen(o => !o)}
           />
         )}
-        <main className="flex-1 overflow-auto bg-gray-50 p-4">
+        <main className="flex-1 overflow-auto bg-gray-50 p-4 pb-16">
           {children}
         </main>
       </div>

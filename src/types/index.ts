@@ -67,6 +67,8 @@ export interface SessionType {
   id: string;
   name: string;
   color?: string;
+  /** High-level grouping: Session / Showcase / Activation / Networking / Other. */
+  category?: string;
   eventId?: string;
 }
 
@@ -80,6 +82,16 @@ export interface Track {
 export interface Organization {
   id: string;
   name: string;
+  /** Sponsorship/role tier (Presenting, Partner, Steel, Iron, Carbon, Nickel, General, Community, Organizer, Media). */
+  tier?: string | null;
+  /** Legacy boolean — true if any in-kind contribution. Superseded by in_kind_amount; kept for back-compat. */
+  in_kind?: boolean;
+  /** Confirmed cash contribution, in USD. */
+  cash_amount?: number | null;
+  /** Estimated in-kind contribution value, in USD. */
+  in_kind_amount?: number | null;
+  /** Free-form notes about the relationship, displayed in the org list. */
+  notes?: string | null;
   eventId?: string;
 }
 
