@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react';
 import { useStore, useIsAdmin, Speaker } from '../store';
 import { useConfirm } from '../components/ConfirmDialog';
+import { findDuplicateByName } from '../utils/findDuplicateByName';
 
 // Renders a speaker's photo if one exists, otherwise a CSS-generated
 // initials avatar. Avoids a hardcoded external fallback URL that would
@@ -47,10 +48,14 @@ interface SpeakerModalProps {
   isOpen: boolean;
   onClose: () => void;
   speakerId: string | null;
+  /** Called when the user picks "Open existing" on the dupe prompt —
+   *  parent switches the modal into edit-mode for that id. */
+  onOpenExisting?: (id: string) => void;
 }
 
-const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId }) => {
+const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId, onOpenExisting }) => {
   const { speakers, addSpeaker, updateSpeaker } = useStore();
+  const confirm = useConfirm();
   const existingSpeaker = speakerId ? speakers.find(s => s.id === speakerId) : null;
   
   const [formData, setFormData] = useState<Omit<Speaker, 'id'>>({
@@ -104,15 +109,33 @@ const SpeakerModal: React.FC<SpeakerModalProps> = ({ isOpen, onClose, speakerId 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Block exact case-insensitive name duplicates. Soft block — Cancel
+    // leaves the user in the modal so they can disambiguate the name
+    // (e.g., "Sarah Smith (NASA)" vs "Sarah Smith (Stripe)") if they
+    // actually meant a separate speaker.
+    const dupe = findDuplicateByName(formData.name, speakers, speakerId);
+    if (dupe) {
+      const openExisting = await confirm({
+        title: `"${dupe.name}" already exists`,
+        body: <>A speaker with this name already exists. Open the existing entry instead of creating a duplicate?</>,
+        confirmLabel: 'Open existing',
+        cancelLabel: 'Cancel',
+      });
+      if (openExisting && onOpenExisting) {
+        onOpenExisting(dupe.id);
+      }
+      return;
+    }
+
     if (speakerId) {
       updateSpeaker(speakerId, formData);
     } else {
       addSpeaker(formData);
     }
-    
+
     onClose();
   };
   
@@ -507,6 +530,7 @@ export const SpeakersView: React.FC = () => {
           isOpen={modalOpen}
           onClose={closeModal}
           speakerId={editingSpeakerId}
+          onOpenExisting={(id) => setEditingSpeakerId(id)}
         />
       )}
     </div>

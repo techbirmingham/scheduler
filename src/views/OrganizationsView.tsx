@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Grid, List, Search, Plus, Edit, Trash, X } from 'lucide-react'
 import { useStore, useIsAdmin } from '../store'
 import { useConfirm } from '../components/ConfirmDialog'
+import { findDuplicateByName } from '../utils/findDuplicateByName'
 import type { Organization } from '../types'
 
 // ============================================================================
@@ -52,6 +53,9 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   orgId: string | null
+  /** Called when the user picks "Open existing" on the dupe prompt — parent
+   *  switches the modal into edit-mode for that id without closing it. */
+  onOpenExisting?: (id: string) => void
 }
 
 // Visual treatment for role chips in the Sponsorship surface section.
@@ -61,8 +65,9 @@ const SURFACE_ROLE_CLASS: Record<string, string> = {
   Sponsor:   'bg-gray-100 text-gray-600',
 }
 
-const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => {
+const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId, onOpenExisting }) => {
   const { organizations, programs, sessions, addOrganization, updateOrganization } = useStore()
+  const confirm = useConfirm()
   const existing = orgId ? organizations.find(o => o.id === orgId) : null
 
   // Compute everywhere this org appears across the event — Programs and
@@ -135,10 +140,28 @@ const OrganizationModal: React.FC<ModalProps> = ({ isOpen, onClose, orgId }) => 
     return Number.isFinite(n) ? n : null
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = name.trim()
     if (!trimmed) return
+
+    // Block exact case-insensitive name duplicates. Soft block — Cancel
+    // leaves the user in the modal so they can rename if they actually
+    // wanted a separate org ("NASCAR Foundation" vs "NASCAR").
+    const dupe = findDuplicateByName(trimmed, organizations, orgId)
+    if (dupe) {
+      const openExisting = await confirm({
+        title: `"${dupe.name}" already exists`,
+        body: <>An organization with this name already exists. Open the existing entry instead of creating a duplicate?</>,
+        confirmLabel: 'Open existing',
+        cancelLabel: 'Cancel',
+      })
+      if (openExisting && onOpenExisting) {
+        onOpenExisting(dupe.id)
+      }
+      return
+    }
+
     const payload: any = {
       name: trimmed,
       tier: tier || null,
@@ -573,6 +596,7 @@ export const OrganizationsView: React.FC = () => {
           isOpen={modalOpen}
           onClose={() => { setModalOpen(false); setEditingId(null) }}
           orgId={editingId}
+          onOpenExisting={(id) => setEditingId(id)}
         />
       )}
     </div>
