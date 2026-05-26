@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import FullCalendar, { EventDropArg, EventResizeDoneArg } from '@fullcalendar/react';
 import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Plus, ZoomIn, ZoomOut } from 'lucide-react';
+import { Plus, ZoomIn, ZoomOut, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { useStore } from '../store';
 import { SessionModal } from '../components/SessionModal';
@@ -18,6 +18,7 @@ export const GridView: React.FC = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<{ start: string; end: string } | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<string | null>(null);
+  const [hideEmptyVenues, setHideEmptyVenues] = useState(false);
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -63,15 +64,21 @@ const [zoomLevel, setZoomLevel] = useState(3)
   const events = filteredSessions
     .filter(s => s.date === selectedDate)
     .map(session => {
-      const type = sessionTypes.find(t => t.id === session.sessionTypeId);
+      // Color priority: first track > session type > neutral indigo.
+      // Tracks have a defined palette; types are usually NULL today.
+      const firstTrack = session.trackIds.length
+        ? tracks.find(t => t.id === session.trackIds[0])
+        : null
+      const type = sessionTypes.find(t => t.id === session.sessionTypeId)
+      const color = firstTrack?.color || type?.color || '#6366f1'
       return {
         id: session.id,
         title: session.title,
         start: `${session.date}T${session.startTime}`,
         end: `${session.date}T${session.endTime}`,
         resourceId: session.venueId,
-        backgroundColor: type?.color || '#3788d8',
-        borderColor: type?.color || '#3788d8',
+        backgroundColor: color,
+        borderColor: color,
         extendedProps: { description: session.description, speakers: session.speakerIds, sessionTypeId: session.sessionTypeId, trackIds: session.trackIds }
       };
     });
@@ -80,9 +87,13 @@ const [zoomLevel, setZoomLevel] = useState(3)
   ? selectedFilters.venues
   : venues.map(v => v.id)
 
+  // Venues that have at least one session (post-filter) on the active date.
+  const venueIdsWithSessions = new Set(events.map(e => e.resourceId))
+
   const resources = venues
     .filter(v => visibleVenueIds.includes(v.id))
-    .map(v => ({ id: v.id, title: v.name.toUpperCase() }));
+    .filter(v => !hideEmptyVenues || venueIdsWithSessions.has(v.id))
+    .map(v => ({ id: v.id, title: v.name }));
 
   const handleDateSelect = (arg: any) => {
     const startStr = arg.startStr;
@@ -144,6 +155,17 @@ const closeModal = () => {
         <h1 className="text-2xl font-semibold text-gray-800">Grid View</h1>
         <div className="flex items-center space-x-2">
           <button
+            onClick={() => setHideEmptyVenues(v => !v)}
+            title={hideEmptyVenues ? 'Show all venues' : 'Hide venues with no sessions today'}
+            className={`p-2 rounded-md text-sm font-medium flex items-center ${
+              hideEmptyVenues
+                ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            {hideEmptyVenues ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+          <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}
             title="Zoom out"
@@ -199,6 +221,11 @@ const closeModal = () => {
           eventClick={handleEventClick}
           eventDrop={handleEventDrop}
           eventResize={handleEventResize}
+          eventDidMount={(info) => {
+            // Browser tooltip with the full title — useful when the
+            // card is too narrow/short to show the whole thing.
+            info.el.setAttribute('title', info.event.title)
+          }}
           resourceAreaHeaderContent="Venues"
           slotLabelFormat={[{ hour: 'numeric', minute: '2-digit', hour12: true, meridiem: 'short' }]}
         />

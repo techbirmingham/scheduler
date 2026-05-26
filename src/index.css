@@ -35,9 +35,28 @@
   font-size: 0.875rem !important;
 }
 
-/* Make venue labels uppercase */
-.fc .fc-resource-area .fc-datagrid-cell-cushion {
-  text-transform: uppercase !important;
+/* Venue column headers in the Grid (resource-timegrid) view.
+   Default FullCalendar font is loud; dial it down for density. */
+.fc .fc-resource-area .fc-datagrid-cell-cushion,
+.fc .fc-col-header-cell-cushion {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  color: #374151;
+  white-space: normal !important;
+  line-height: 1.25;
+}
+
+/* Session card titles wrap to 2 lines when there's space; full title
+   is always available on hover via the title attribute. */
+.fc-timegrid-event .fc-event-title,
+.fc-timegrid-event .fc-event-title-container {
+  white-space: normal !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-height: 1.2;
 }
 
 /* Zoom-specific font tweaks */
