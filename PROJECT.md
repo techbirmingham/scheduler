@@ -265,6 +265,23 @@ Mostly polish and reach, not blockers. In rough priority order:
   feel inconsistent next to the others. Audit the FullCalendar overrides
   in `src/index.css` (toolbar, slot labels, resource headers, event
   labels) and align with the rest of the app.
+- **Rename "Session Types" → something less loose.** The category covers
+  things that aren't really sessions (parties, exhibitions, activations,
+  lounges), so the name has drifted from the data. Two real options:
+  - **`Session Formats`** — minimal rename, just swap "Types" for
+    "Formats" to fix the linguistic itch without changing the noun.
+    Easiest path, smallest diff.
+  - **`Activity Formats`** — broader, more accurate, but a mouthful
+    and would push toward also renaming `sessions` → `activities` at
+    the entity level for consistency. Much bigger change.
+  - **Skip "Event Formats"** despite the SXSW precedent — the schema's
+    top-level entity is already `events` (the conference itself), so
+    "event format" would collide with "the event" and create lasting
+    terminology confusion.
+  - Whichever direction, the rename touches the `session_types` table,
+    the `sessionTypeId` FK on `sessions`, every TS type and store
+    action, the views, and the modal copy. ~2–3 hours plus a data
+    migration. Worth doing for naming hygiene, not urgent.
 - **Speaker headshot upload via Supabase Storage.** Today headshots are URL
   fields; nobody is going to paste 60 URLs. Sketched two paths: admin-only
   uploader (~1–2 hours) and a tokenized public link per speaker so the
