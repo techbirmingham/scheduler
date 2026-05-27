@@ -23,20 +23,24 @@ export const TimelineView: React.FC = () => {
   const [tooltipState, setTooltipState] = useState<SessionTooltipState | null>(null)
 
   // ── ZOOM SETUP ───────────────────────────────────────────────────
+  // Added 30-min for a wider/bird's-eye view. 1-min was experimented with
+  // and removed — the loss of magnetic snap-to-clean-times wasn't worth
+  // the precision benefit. Modal time-input still allows minute-level
+  // editing when a session genuinely needs it.
   const slotDurations = [
+    '00:30:00',
     '00:20:00',
     '00:15:00',
     '00:10:00',
     '00:05:00',
   ]
-  // slotDurations is ['00:20:00','00:15:00','00:10:00','00:05:00'].
-  // Default to index 1 = '00:15:00' (was previously set to 5, which
-  // was out of bounds and made FullCalendar fall back to its default
-  // slot, producing weird in-then-out jumps on zoom out).
-  const DEFAULT_ZOOM = 1
+  const DEFAULT_ZOOM = 2  // 15-min slots
   const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM)
   const handleZoomReset = () => setZoomLevel(DEFAULT_ZOOM)
   const currentSlot = slotDurations[zoomLevel]
+  const slotMinutes =
+    Number(currentSlot.split(':')[0]) * 60 +
+    Number(currentSlot.split(':')[1])
 
   const handleZoomIn = () =>
     setZoomLevel(z => Math.min(z + 1, slotDurations.length - 1))
@@ -177,6 +181,12 @@ export const TimelineView: React.FC = () => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Timeline View</h1>
         <div className="flex items-center space-x-2">
+          {/* State label for the empty-venues toggle — sits LEFT of the
+              button so a user knows what the icon does and the current
+              state without hovering. */}
+          <span className="text-xs text-gray-600 whitespace-nowrap">
+            {hideEmptyVenues ? 'Empty hidden' : 'All venues'}
+          </span>
           <button
             onClick={() => setHideEmptyVenues(v => !v)}
             title={hideEmptyVenues ? 'Show all venues' : 'Hide venues with no sessions today'}
@@ -188,6 +198,11 @@ export const TimelineView: React.FC = () => {
           >
             {hideEmptyVenues ? <EyeOff size={16}/> : <Eye size={16}/>}
           </button>
+          {/* Slot-duration label LEFT of zoom buttons so they don't
+              shift when digit count changes (e.g., 5 → 15). */}
+          <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap ml-2">
+            {slotMinutes}-min slots
+          </span>
           <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}

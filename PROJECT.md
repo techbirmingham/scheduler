@@ -247,6 +247,13 @@ Mostly polish and reach, not blockers. In rough priority order:
   range, venue, speakers, session-type chip, track chips, and a gating
   badge for non-public sessions. ~30–45 min of work. Touch alt (tap to
   expand) is a follow-up once mobile responsiveness lands.
+- **View preferences persistence ("view lock").** Per-view UI state —
+  zoom level, hide-empty-venues toggle, sidebar collapsed/expanded,
+  selected event — currently resets on every page load. Persist these
+  to localStorage so each user's preferred view is restored on return.
+  A "lock view" indicator (or just silent persistence) keeps the
+  experience consistent across sessions. Per-user-in-DB is a step
+  beyond that for true cross-device sync.
 - **Per-event day-start / day-end time.** Grid and Timeline currently
   hardcode `slotMinTime="07:00:00"` and `slotMaxTime="22:00:00"`. Some
   events (e.g., a multi-day with late-night parties) may want a

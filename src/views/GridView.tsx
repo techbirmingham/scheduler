@@ -46,28 +46,27 @@ export const GridView: React.FC = () => {
   }, [currentEvent?.startDate, currentEvent?.endDate]);
 
 // 1) Define available slot durations (from longest to shortest)
+// Trimmed zoom progression — 50/40/20 were awkward intermediates that
+// didn't visually differ much from their neighbors. Cleaner: 60, 30, 15,
+// 10, 5 — five useful stops covering bird's-eye through fine detail.
 const slotDurations = [
-  '01:00:00',  // 60 minutes
-  '00:50:00',  // 50 minutes
-  '00:40:00',  // 40 minutes
-  '00:30:00',  // 30 minutes
-  '00:20:00',  // 20 minutes
-  '00:15:00',  // 15 minutes
+  '01:00:00',  // 60 minutes — bird's-eye
+  '00:30:00',  // 30 minutes — standard
+  '00:15:00',  // 15 minutes — detailed (default)
   '00:10:00',  // 10 minutes
-  '00:05:00',  // 5 minutes
+  '00:05:00',  // 5 minutes — max detail
 ];
 
-// 2) Your zoom state
-// Default to index 4 ('00:20:00') — 20-min slots give more vertical
-// density than 30-min and use the page's available height better.
-const DEFAULT_ZOOM = 4
+const DEFAULT_ZOOM = 2  // 15-min slots — denser than 30, less crowded than 10
 const [zoomLevel, setZoomLevel] = useState(DEFAULT_ZOOM)
 const handleZoomReset = () => setZoomLevel(DEFAULT_ZOOM);
-// (starting at the 4th index, e.g. 30-minute slots)
 
   const handleZoomIn = () => setZoomLevel(z => Math.min(z + 1, slotDurations.length - 1));
   const handleZoomOut = () => setZoomLevel(z => Math.max(z - 1, 0));
   const currentSlotDuration = slotDurations[zoomLevel];
+  const slotMinutes =
+    Number(currentSlotDuration.split(':')[0]) * 60 +
+    Number(currentSlotDuration.split(':')[1]);
 
   useEffect(() => {
     document.body.classList.add(`zoom-${zoomLevel}`);
@@ -182,6 +181,12 @@ const closeModal = () => {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold text-gray-800">Grid View</h1>
         <div className="flex items-center space-x-2">
+          {/* State label for the empty-venues toggle — sits LEFT of the
+              button so a user knows what the icon does and the current
+              state without hovering. */}
+          <span className="text-xs text-gray-600 whitespace-nowrap">
+            {hideEmptyVenues ? 'Empty hidden' : 'All venues'}
+          </span>
           <button
             onClick={() => setHideEmptyVenues(v => !v)}
             title={hideEmptyVenues ? 'Show all venues' : 'Hide venues with no sessions today'}
@@ -193,6 +198,12 @@ const closeModal = () => {
           >
             {hideEmptyVenues ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
+          {/* Slot-duration label sits LEFT of the zoom buttons so the
+              buttons don't shift a few pixels when the digit count
+              changes (e.g., 5 → 15). */}
+          <span className="text-xs text-gray-600 tabular-nums whitespace-nowrap ml-2">
+            {slotMinutes}-min slots
+          </span>
           <button
             onClick={handleZoomOut}
             disabled={zoomLevel === 0}
