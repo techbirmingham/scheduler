@@ -271,7 +271,17 @@ Mostly polish and reach, not blockers. In rough priority order:
   speakers themselves upload (~1 day).
 - **Create new event flow.** EventPicker has a "Create new event (coming
   soon)" stub. The flow needs a small modal that inserts an `events` row
-  and then triggers a re-fetch.
+  and then triggers a re-fetch. Worth designing with **copy-from-existing**
+  in mind from the start: most new events are next year's instance of a
+  prior event, so the modal should let the user pick a source event and
+  check boxes for which taxonomy to clone (`venueIds`, `trackIds`,
+  `sessionTypeIds`, `accessLevelIds`, `programIds`, `organizationIds`).
+  Sensible defaults: taxonomy on, speakers off (speakers are global
+  anyway), sessions off (usually rebuilt). A "copy sessions but blank
+  the times" option is worth considering for recurring formats. The
+  cleanest implementation is one SQL function per entity type that
+  duplicates rows with a new `eventId`; the modal just picks which
+  functions to call.
 - **Drag/drop reordering** of taxonomy items, especially Tracks (color
   ordering matters). Needs a library like `dnd-kit`.
 - **Mobile responsiveness.** The Grid and Timeline don't work at narrow
