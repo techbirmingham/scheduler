@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Trash2, AlertTriangle } from 'lucide-react'
 import Select, { MultiValue, SingleValue, StylesConfig } from 'react-select'
+import CreatableSelect from 'react-select/creatable'
 import { useStore, useIsAdmin, Session } from '../store'
 import { useConfirm } from './ConfirmDialog'
 import {
@@ -72,7 +73,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   const {
     sessions, venues, speakers, sessionTypes, tracks,
     organizations, programs, experiences, accessLevels,
-    addSession, updateSession, deleteSession,
+    addSession, updateSession, deleteSession, addSpeaker,
   } = useStore()
   const isAdmin = useIsAdmin()
   const confirm = useConfirm()
@@ -340,12 +341,32 @@ export const SessionModal: React.FC<SessionModalProps> = ({
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Speakers</label>
-              <Select
+              <CreatableSelect
                 options={speakerOpts}
                 isMulti
+                placeholder="Select speakers — or type a name to add a new one"
                 value={speakerOpts.filter(o => formData.speakerIds.includes(o.value))}
                 onChange={v => updateField('speakerIds', (v as MultiValue<Option>).map(o => o.value))}
                 styles={multiSelectStyles}
+                formatCreateLabel={(name) => `+ Add new speaker "${name}"`}
+                // Case-insensitive duplicate check — suppress the "Create"
+                // option when the typed name matches an existing speaker so
+                // users don't accidentally make near-duplicates.
+                isValidNewOption={(input, _val, opts) => {
+                  const v = input.trim().toLowerCase()
+                  if (!v) return false
+                  return !opts.some(o => (o as Option).label.trim().toLowerCase() === v)
+                }}
+                onCreateOption={async (rawName) => {
+                  const name = rawName.trim()
+                  if (!name) return
+                  const created = await addSpeaker({
+                    name, title: '', company: '', bio: '', photoUrl: '',
+                  })
+                  if (created) {
+                    updateField('speakerIds', [...formData.speakerIds, created.id])
+                  }
+                }}
               />
             </div>
 

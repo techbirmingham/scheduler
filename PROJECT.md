@@ -269,6 +269,33 @@ Mostly polish and reach, not blockers. In rough priority order:
   fields; nobody is going to paste 60 URLs. Sketched two paths: admin-only
   uploader (~1–2 hours) and a tokenized public link per speaker so the
   speakers themselves upload (~1 day).
+- **Incomplete-speaker awareness.** Speakers can now be quick-created from
+  the SessionModal (name only — title/company/bio/photo blank). Need a
+  way to surface and triage these:
+  - **Persistent badge** on the Speakers nav tab showing count of
+    incomplete profiles. Visible only when count > 0. Click navigates
+    to Speakers page with an "incomplete" filter pre-applied.
+  - **Incomplete filter chip** on the Speakers page (alongside any
+    future status filters) that solos the list.
+  - **"Incomplete" pill** on individual speaker cards so they're
+    visually flagged even when no filter is active.
+  - Definition of "incomplete" for now: missing bio OR missing photo
+    URL. These are the public-facing fields that matter; title/company
+    can be blank without being embarrassing.
+- **Speaker ↔ Organization relationship.** Two related but distinct
+  use cases worth thinking about together:
+  - **Speaker affiliation as a real FK** — today `speakers.company` is
+    free-text. Linking to an actual `organizations` row would let us
+    surface "X people from Org Y are speaking" and detect when a
+    sponsorship deal includes speaking slots.
+  - **Primary point-of-contact per org** — a non-speaker person who
+    owns the relationship (e.g., agency contact, sponsor lead). May
+    or may not be the same as a speaker. Suggests a more general
+    `people` concept that speakers + contacts both reference, rather
+    than two separate tables.
+  - Worth deciding the model holistically before implementing — if we
+    pick "people = speakers + contacts unified," the migration is
+    bigger but the long-term shape is cleaner.
 - **Create new event flow.** EventPicker has a "Create new event (coming
   soon)" stub. The flow needs a small modal that inserts an `events` row
   and then triggers a re-fetch. Worth designing with **copy-from-existing**

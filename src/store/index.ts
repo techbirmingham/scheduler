@@ -39,7 +39,9 @@ interface State {
   accessLevels: AccessLevel[]
   selectedFilters: Record<keyof Omit<State, 'selectedFilters'>, string[]>
 
-  addSpeaker: (speaker: Omit<Speaker,'id'>) => Promise<void>
+  /** Returns the created Speaker on success so callers (like an
+   *  inline-create dropdown) can use its id immediately. Null on error. */
+  addSpeaker: (speaker: Omit<Speaker,'id'>) => Promise<Speaker | null>
   updateSpeaker: (id: string, updates: Partial<Speaker>) => Promise<void>
   deleteSpeaker: (id: string) => Promise<void>
 
@@ -224,9 +226,10 @@ export const useStore = create<State>((set, get) => {
         .single()
       if (error) {
         console.error('insert speaker failed', error)
-      } else {
-        set((s) => ({ speakers: [...s.speakers, data] }))
+        return null
       }
+      set((s) => ({ speakers: [...s.speakers, data] }))
+      return data
     },
     updateSpeaker: async (id, updates) => {
       const { data, error } = await supabase
